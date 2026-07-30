@@ -21,9 +21,12 @@ function Lockup({ compact }: { compact?: boolean }) {
         )}
       </div>
 
-      <span aria-hidden="true" className="h-5 w-px shrink-0 bg-cream/30" />
-      <span className="t-micro shrink-0 text-[10px] text-cream">×</span>
-      <span className="t-micro shrink-0 whitespace-nowrap text-[10px] text-cream sm:text-[11px]">Willow TV</span>
+      <span aria-hidden="true" className="hidden h-5 w-px shrink-0 bg-cream/30 sm:block" />
+      <span className="t-micro hidden shrink-0 text-[10px] text-cream sm:inline">×</span>
+      <span className="t-micro hidden shrink-0 whitespace-nowrap text-[10px] text-cream sm:inline sm:text-[11px]">
+        Willow TV
+      </span>
+
     </div>
   );
 }
