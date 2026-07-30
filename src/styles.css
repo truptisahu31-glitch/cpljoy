@@ -3,72 +3,70 @@
 @import "tw-animate-css";
 
 /*
- * Champhunt × Willow TV — CPL 2026
- * Palette: Option A · FLOODLIGHT × BROADCAST
- * Accents are never body copy. --lime means Runs, earning and winning, nothing else.
+ * Champhunt × Willow TV — CPL 2026 Power Rankings
+ * Palette: Option B · J'OUVERT (light / carnival)
+ *
+ * Rules baked in here:
+ * - On indigo / purple / magenta surfaces, type is cream.
+ * - On coral / orange / gold / cream surfaces, type is ink.
+ * - Every cream surface sets its own `color`. See .surface-cream.
+ * - CTAs are one constant colour across all eight sections (--color-brand).
  */
 
 @theme {
-  --color-ink-0: #07070f;
-  --color-ink-1: #0d0b1a;
-  --color-ink-2: #14102a;
-  --color-surface: #171528;
-  --color-surface-hi: #211e36;
-  --color-overlay: #0a0912;
-
+  --color-ink: #2d1b4e;
+  --color-cream: #fff4e6;
+  --color-cream-2: #fdead2;
+  --color-cream-3: #f7dfc4;
+  --color-indigo: #241b5e;
+  --color-purple: #6b2fb5;
   --color-brand: #9333ea;
   --color-brand-hover: #a855f7;
-  --color-brand-deep: #6d28d9;
-  --color-brand-soft: #c084fc;
-
-  --color-magenta: #ff2e93;
-  --color-lime: #c8ff00;
+  --color-magenta: #e0218a;
+  --color-coral: #ff5e5b;
+  --color-orange: #ff7a00;
+  --color-gold: #ffc42e;
+  --color-win: #17b978;
+  --color-loss: #ff5e5b;
   --color-live: #ff3b30;
-  --color-cyan: #00d9ff;
-  --color-amber: #ffb020;
+  --color-line: #e6d3b8;
 
-  --color-paper: #ffffff;
-  --color-grey: #b4b4c6;
-  --color-grey-dim: #6e6e85;
-  --color-line: #241f3d;
-
-  --font-display: "Anton", "Arial Narrow", sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
-
-  --radius-none: 0px;
+  --font-display: "Fredoka", "Trebuchet MS", sans-serif;
+  --font-body: "Outfit", system-ui, sans-serif;
+  --font-accent: "Caveat", cursive;
 }
 
-/* shadcn bridge — kept so ui/* primitives stay legible on the dark ground */
+/* shadcn bridge so ui/* primitives inherit the carnival system */
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--fg);
-  --color-card: var(--color-surface);
-  --color-card-foreground: var(--fg);
-  --color-popover: var(--color-surface);
-  --color-popover-foreground: var(--fg);
+  --color-card: var(--color-cream);
+  --color-card-foreground: var(--color-ink);
+  --color-popover: var(--color-cream);
+  --color-popover-foreground: var(--color-ink);
   --color-primary: var(--color-brand);
-  --color-primary-foreground: #ffffff;
-  --color-secondary: var(--color-surface-hi);
-  --color-secondary-foreground: var(--fg);
-  --color-muted: var(--color-surface-hi);
-  --color-muted-foreground: var(--color-grey);
-  --color-accent: var(--color-surface-hi);
-  --color-accent-foreground: var(--fg);
-  --color-destructive: var(--color-live);
-  --color-destructive-foreground: #ffffff;
+  --color-primary-foreground: var(--color-cream);
+  --color-secondary: var(--color-cream-2);
+  --color-secondary-foreground: var(--color-ink);
+  --color-muted: var(--color-cream-2);
+  --color-muted-foreground: color-mix(in oklab, var(--color-ink) 62%, transparent);
+  --color-accent: var(--color-cream-3);
+  --color-accent-foreground: var(--color-ink);
+  --color-destructive: var(--color-coral);
+  --color-destructive-foreground: var(--color-cream);
   --color-border: var(--color-line);
   --color-input: var(--color-line);
-  --color-ring: var(--color-brand-hover);
-  --radius-sm: 2px;
-  --radius-md: 2px;
-  --radius-lg: 2px;
-  --radius-xl: 2px;
+  --color-ring: var(--color-brand);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
 }
 
 :root {
-  --bg: #07070f;
-  --fg: #ffffff;
-  --radius: 2px;
+  --bg: #fff4e6;
+  --fg: #2d1b4e;
+  --radius: 10px;
 }
 
 @layer base {
@@ -84,7 +82,7 @@
     background-color: var(--bg);
     color: var(--fg);
     font-family: var(--font-body);
-    font-feature-settings: "tnum" 1;
+    font-variant-numeric: tabular-nums;
     overflow-x: hidden;
   }
 
@@ -93,30 +91,56 @@
   h3,
   .display {
     font-family: var(--font-display);
-    text-transform: uppercase;
-    line-height: 1.05;
-    letter-spacing: 0.01em;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
   }
 
   ::selection {
-    background: var(--color-magenta);
-    color: #fff;
+    background: var(--color-gold);
+    color: var(--color-ink);
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-brand-hover);
+    outline: 3px solid var(--color-brand);
     outline-offset: 2px;
   }
+}
+
+/* ---------- surfaces: each one sets its own colour ---------- */
+@utility surface-cream {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+}
+@utility surface-cream-2 {
+  background-color: var(--color-cream-2);
+  color: var(--color-ink);
+}
+@utility surface-cream-3 {
+  background-color: var(--color-cream-3);
+  color: var(--color-ink);
+}
+@utility surface-indigo {
+  background-color: var(--color-indigo);
+  color: var(--color-cream);
+}
+@utility surface-purple {
+  background-color: var(--color-purple);
+  color: var(--color-cream);
+}
+@utility surface-magenta {
+  background-color: var(--color-magenta);
+  color: var(--color-cream);
 }
 
 /* ---------- type scale ---------- */
 @utility t-h1 {
   font-size: clamp(30px, 4.6vw, 62px);
-  line-height: 1.05;
+  line-height: 1.08;
 }
 @utility t-h2 {
   font-size: clamp(26px, 3.6vw, 46px);
-  line-height: 1.08;
+  line-height: 1.1;
 }
 @utility t-sub {
   font-size: clamp(14px, 1.4vw, 17px);
@@ -132,22 +156,29 @@
   text-transform: uppercase;
   letter-spacing: 0.12em;
   line-height: 1.4;
+  font-weight: 600;
 }
 @utility tnum {
   font-variant-numeric: tabular-nums;
 }
+@utility ink-muted {
+  color: color-mix(in oklab, var(--color-ink) 62%, transparent);
+}
+@utility cream-muted {
+  color: color-mix(in oklab, var(--color-cream) 78%, transparent);
+}
 
-/* ---------- section textures (drawn in the section accent, 7–10%) ---------- */
+/* ---------- section textures, drawn in the section accent ---------- */
 @utility tex-dots {
-  background-image: radial-gradient(currentColor 1.4px, transparent 1.5px);
-  background-size: 14px 14px;
-  opacity: 0.09;
+  background-image: radial-gradient(currentColor 1.6px, transparent 1.7px);
+  background-size: 16px 16px;
+  opacity: 0.1;
 }
 @utility tex-scan {
   background-image: repeating-linear-gradient(
     to bottom,
-    currentColor 0 1px,
-    transparent 1px 6px
+    currentColor 0 2px,
+    transparent 2px 8px
   );
   opacity: 0.08;
 }
@@ -155,39 +186,40 @@
   background-image:
     linear-gradient(to right, currentColor 1px, transparent 1px),
     linear-gradient(to bottom, currentColor 1px, transparent 1px);
-  background-size: 34px 34px;
-  opacity: 0.08;
+  background-size: 36px 36px;
+  opacity: 0.09;
 }
 @utility tex-chevron {
   background-image:
-    repeating-linear-gradient(45deg, currentColor 0 1px, transparent 1px 12px),
-    repeating-linear-gradient(-45deg, currentColor 0 1px, transparent 1px 12px);
+    repeating-linear-gradient(45deg, currentColor 0 2px, transparent 2px 14px),
+    repeating-linear-gradient(-45deg, currentColor 0 2px, transparent 2px 14px);
   opacity: 0.08;
 }
 @utility tex-arcs {
   background-image: repeating-radial-gradient(
-    circle at 50% 130%,
-    currentColor 0 1px,
-    transparent 1px 42px
+    circle at 50% 132%,
+    currentColor 0 2px,
+    transparent 2px 46px
   );
-  opacity: 0.09;
+  opacity: 0.1;
 }
 @utility tex-perf {
-  background-image: radial-gradient(circle, currentColor 3px, transparent 3.5px);
-  background-size: 26px 26px;
-  opacity: 0.08;
+  background-image: radial-gradient(circle, currentColor 3.5px, transparent 4px);
+  background-size: 28px 28px;
+  opacity: 0.09;
 }
 @utility tex-confetti {
   background-image:
-    repeating-linear-gradient(68deg, currentColor 0 2px, transparent 2px 22px),
-    repeating-linear-gradient(-52deg, currentColor 0 2px, transparent 2px 30px);
-  opacity: 0.09;
+    repeating-linear-gradient(68deg, currentColor 0 3px, transparent 3px 24px),
+    repeating-linear-gradient(-52deg, currentColor 0 3px, transparent 3px 32px);
+  opacity: 0.1;
 }
 
 @utility no-cursor {
   cursor: none;
 }
 
+/* ---------- loops ---------- */
 @keyframes marquee-x {
   from {
     transform: translateX(0);
@@ -197,27 +229,18 @@
   }
 }
 @utility animate-marquee {
-  animation: marquee-x 42s linear infinite;
-}
-
-@keyframes ticker-x {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
+  animation: marquee-x 44s linear infinite;
 }
 @utility animate-ticker {
-  animation: ticker-x 26s linear infinite;
+  animation: marquee-x 28s linear infinite;
 }
 
 @keyframes shimmer-x {
   from {
-    transform: translateX(-100%);
+    transform: translateX(-110%);
   }
   to {
-    transform: translateX(100%);
+    transform: translateX(110%);
   }
 }
 @utility animate-shimmer {
@@ -231,8 +254,8 @@
     transform: scale(1);
   }
   50% {
-    opacity: 0.35;
-    transform: scale(0.82);
+    opacity: 0.3;
+    transform: scale(0.8);
   }
 }
 @utility animate-live {
@@ -245,10 +268,10 @@
     transform: translateX(0);
   }
   25% {
-    transform: translateX(-4px);
+    transform: translateX(-5px);
   }
   75% {
-    transform: translateX(4px);
+    transform: translateX(5px);
   }
 }
 @utility animate-shake {
