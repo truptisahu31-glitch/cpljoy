@@ -16,8 +16,11 @@ function Lockup({ compact }: { compact?: boolean }) {
       </span>
       <div className="min-w-0 leading-tight">
         <span className="block truncate font-display text-[15px] text-cream sm:text-[17px]">Champhunt</span>
-        {!compact && <span className="t-micro block cream-muted text-[9px]">Powered by Champhunt AI</span>}
+        {!compact && (
+          <span className="t-micro cream-muted hidden truncate text-[9px] sm:block">Powered by Champhunt AI</span>
+        )}
       </div>
+
       <span aria-hidden="true" className="h-5 w-px shrink-0 bg-cream/30" />
       <span className="t-micro shrink-0 text-[10px] text-cream">×</span>
       <span className="t-micro shrink-0 whitespace-nowrap text-[10px] text-cream sm:text-[11px]">Willow TV</span>
