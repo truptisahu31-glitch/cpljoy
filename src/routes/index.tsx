@@ -30,7 +30,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "The table that asks who is playing well, not who has points. Nine measurements, published weights, free predictions.",
+          "Who is playing the best cricket in the Caribbean right now — nine measurements, weights we published, updated Mondays. Play a prediction free.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

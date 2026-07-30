@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "CPL 2026 AI Power Rankings | Champhunt × Willow TV" },
+      { name: "description", content: "Who is playing the best cricket in the Caribbean right now — nine measurements, weights we published, updated Mondays. Play a prediction free." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "CPL 2026 AI Power Rankings | Champhunt × Willow TV" },
+      { property: "og:description", content: "Who is playing the best cricket in the Caribbean right now — nine measurements, weights we published, updated Mondays. Play a prediction free." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "CPL 2026 AI Power Rankings | Champhunt × Willow TV" },
+      { name: "twitter:description", content: "Who is playing the best cricket in the Caribbean right now — nine measurements, weights we published, updated Mondays. Play a prediction free." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d49003b4-3fb9-409b-ace4-336dd3107a55/id-preview-9bb05efb--a6ec22d4-8402-4a8c-8855-ea459d3aefbe.lovable.app-1785433743411.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d49003b4-3fb9-409b-ace4-336dd3107a55/id-preview-9bb05efb--a6ec22d4-8402-4a8c-8855-ea459d3aefbe.lovable.app-1785433743411.png" },
     ],
     links: [
       {
