@@ -104,7 +104,7 @@ export function CallIt() {
               style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
             >
               <p className="font-display text-[19px]">{prediction.split}% of fans are with you.</p>
-              <div className="mt-4 flex flex-col gap-2">
+              <div className="mt-3 flex flex-col gap-2">
                 {[
                   { label: pickedAbbr, pct: prediction.split, color: teamOf(pickedAbbr).color },
                   { label: "Everyone else", pct: 100 - prediction.split, color: "var(--color-ink)" },
@@ -126,8 +126,8 @@ export function CallIt() {
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-[15px] font-semibold">{prediction.hook}</p>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <p className="mt-3 text-[15px] font-semibold">{prediction.hook}</p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <Button className="w-full sm:w-auto" onClick={() => openAuth("prediction")}>
                   Keep my pick
                 </Button>
