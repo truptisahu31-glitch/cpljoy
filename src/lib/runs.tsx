@@ -1,6 +1,9 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
+/** Champhunt's real sign-in page. Opened in a new tab from every auth entry. */
+export const AUTH_URL = "https://www.champhunt.com/auth";
+
 export type EarnId =
   | "prediction"
   | "row-expand"
@@ -92,11 +95,22 @@ export function RunsProvider({ children }: { children: ReactNode }) {
     track("signup_completed");
   }, [track]);
 
+  /**
+   * Every log-in / sign-up entry point on the site funnels through here, so
+   * sending real accounts to the real product is a single change: the in-page
+   * demo modal is no longer opened, the visitor goes to Champhunt's auth page in
+   * a new tab, and the page they were reading is left exactly where it was.
+   *
+   * `noopener,noreferrer` because the opened page gets a handle on this one
+   * otherwise, and can navigate it.
+   */
   const openAuth = useCallback(
     (trigger: AuthTrigger) => {
       setAuthTrigger(trigger);
-      setAuthOpen(true);
       track("signup_opened", { trigger });
+      if (typeof window !== "undefined") {
+        window.open(AUTH_URL, "_blank", "noopener,noreferrer");
+      }
     },
     [track],
   );

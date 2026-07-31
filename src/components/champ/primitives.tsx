@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { teamOf } from "@/content/site.config";
 import { players } from "@/content/site.config";
 import { useFinePointer, useReducedMotion } from "@/lib/media";
+import { useSiteImages } from "@/lib/site-images";
 
 /* ------------------------------------------------------------------ Button */
 
@@ -271,7 +272,10 @@ export function PlayerImage({
   height?: number;
 }) {
   const player = players.find((p) => p.id === playerId);
-  const [failed, setFailed] = useState(!player?.image);
+  // An admin upload replaces the bundled cutout; the bundled one is the fallback.
+  const { playerImage } = useSiteImages();
+  const src = playerId === "pooran" ? playerImage : player?.image;
+  const [failed, setFailed] = useState(!src);
 
   if (failed) {
     return (
@@ -288,7 +292,7 @@ export function PlayerImage({
 
   return (
     <img
-      src={player!.image}
+      src={src!}
       alt=""
       aria-hidden="true"
       width={width}
@@ -408,7 +412,7 @@ export function Shimmer({ className }: { className?: string }) {
 export function WaveDivider({ from, to }: { from: string; to: string }) {
   return (
     <div aria-hidden="true" className="relative w-full" style={{ backgroundColor: from }}>
-      <svg viewBox="0 0 1440 48" preserveAspectRatio="none" className="block h-[34px] w-full md:h-[48px]">
+      <svg viewBox="0 0 1440 48" preserveAspectRatio="none" className="block h-[22px] w-full md:h-[30px]">
         <path
           d="M0 30 C 120 6, 240 6, 360 26 C 480 46, 600 46, 720 24 C 840 4, 960 4, 1080 26 C 1200 46, 1320 46, 1440 28 L1440 48 L0 48 Z"
           fill={to}

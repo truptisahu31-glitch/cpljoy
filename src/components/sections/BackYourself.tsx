@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Button, DigitRoll, RunsIcon, SectionHeader, SmartImage, TeamLogo } from "../champ/primitives";
-import { challenge, heroSlides } from "@/content/site.config";
+import { challenge as bundled, heroSlides } from "@/content/site.config";
+import { challengeFrom } from "@/lib/editable-questions";
+import { useSiteContent } from "@/lib/use-site-content";
 import { useRuns } from "@/lib/runs";
 
 const ACCENT = "var(--color-orange)";
 type State = "idle" | "answered" | "staking" | "locked";
 
 export function BackYourself() {
+  const content = useSiteContent();
+  const edits = challengeFrom(content);
+  const challenge = { ...bundled, ...edits };
   const { credit, openAuth, track } = useRuns();
   const [state, setState] = useState<State>("idle");
   const [answer, setAnswer] = useState<string | null>(null);
@@ -37,7 +42,7 @@ export function BackYourself() {
         <span className="absolute inset-0 bg-gradient-to-r from-cream-3 via-cream-3/60 to-cream-3" />
       </div>
 
-      <div className="relative z-[2] mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(32px,5vw,64px)]">
+      <div className="relative z-[2] mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(24px,3.4vw,44px)]">
         <SectionHeader title="Back yourself" sub="Right, it doubles. Wrong, it's gone." accent={ACCENT} />
 
         <div className="mt-8 flex justify-center">

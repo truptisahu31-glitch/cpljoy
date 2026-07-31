@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { initAnalytics, trackPageview } from "../lib/analytics";
 
 function NotFoundComponent() {
   return (
@@ -120,6 +121,15 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  // One delegated click listener covers every control on the site, so nothing
+  // needs per-component wiring. Route changes are counted explicitly: without
+  // that, a session that moved between pages recorded a single pageview.
+  useEffect(() => {
+    initAnalytics();
+    return router.subscribe("onResolved", () => trackPageview());
+  }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>

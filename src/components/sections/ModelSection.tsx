@@ -2,119 +2,120 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
 import { MessageCircle, Newspaper, Tag, Trophy } from "lucide-react";
 import { Button, DigitRoll, RunsIcon, SectionHeader, SmartImage } from "../champ/primitives";
-import { crowdFrames } from "@/content/site.config";
+import { imageOr } from "@/lib/site-content";
+import { useSiteContent } from "@/lib/use-site-content";
 import { useReducedMotion } from "@/lib/media";
 import { useRuns } from "@/lib/runs";
+import { useSiteImages } from "@/lib/site-images";
 
 const ACCENT = "var(--color-magenta)";
 
+/** `id` doubles as the admin label for the `appMockup` slot, and `shot` is the
+ *  bundled screen that ships with the site — replaceable per tab from /admin. */
 const tiles = [
-  { icon: Newspaper, label: "Pitch", line: "The feed. Where the arguments happen." },
-  { icon: MessageCircle, label: "Dugout", line: "Live match chat. Loud, occasionally unhinged." },
-  { icon: Trophy, label: "Arena", line: "Predictions, challenges, fantasy." },
-  { icon: Tag, label: "Deals", line: "What your Runs are worth." },
+  { id: "pitch", icon: Newspaper, label: "Pitch", line: "The feed. Where the arguments happen.", shot: "/mockups/pitch.png" },
+  { id: "dugout", icon: MessageCircle, label: "Dugout", line: "Live match chat. Loud, occasionally unhinged.", shot: "/mockups/dugout.png" },
+  { id: "arena", icon: Trophy, label: "Arena", line: "Predictions, challenges, fantasy.", shot: "/mockups/arena.png" },
+  { id: "deals", icon: Tag, label: "Deals", line: "What your Runs are worth.", shot: "/mockups/deals.png" },
 ];
 
-function PhoneScreen({ tab, playing }: { tab: number; playing: boolean }) {
-  const reduced = useReducedMotion();
-  const animate = playing && !reduced;
-
-  if (tab === 0) {
-    return (
-      <div className="flex flex-col gap-2 p-3">
-        {["Pooran again. Third time this week.", "That death bowling was criminal.", "Barbados have a spin problem."].map(
-          (t, i) => (
-            <motion.div
-              key={t}
-              initial={{ y: 18, opacity: 0 }}
-              animate={animate ? { y: 0, opacity: 1 } : { y: 0, opacity: 1 }}
-              transition={{ duration: 0.5, delay: i * 0.35, repeat: animate ? Infinity : 0, repeatDelay: 2.4 }}
-              className="surface-cream rounded-lg border-2 border-line p-2"
-            >
-              <p className="text-[11px] font-semibold">{t}</p>
-              <p className="ink-muted mt-1 text-[10px]">♥ {124 + i * 7} · 12 replies</p>
-            </motion.div>
-          ),
-        )}
-      </div>
-    );
-  }
-  if (tab === 1) {
-    return (
-      <div className="flex flex-col gap-2 p-3">
-        {[
-          { side: "l", t: "Bring back the spinner" },
-          { side: "r", t: "Six. Called it." },
-          { side: "l", t: "Field's all wrong" },
-          { side: "r", t: "17 needed, 12 balls" },
-        ].map((m, i) => (
-          <motion.p
-            key={m.t}
-            initial={{ x: m.side === "l" ? -20 : 20, opacity: 0 }}
-            animate={animate ? { x: 0, opacity: 1 } : { x: 0, opacity: 1 }}
-            transition={{ duration: 0.4, delay: i * 0.3, repeat: animate ? Infinity : 0, repeatDelay: 2.2 }}
-            className={`max-w-[78%] rounded-xl px-2.5 py-1.5 text-[11px] font-semibold ${
-              m.side === "l" ? "surface-cream self-start border-2 border-line" : "self-end bg-purple text-cream"
-            }`}
-          >
-            {m.t}
-          </motion.p>
-        ))}
-      </div>
-    );
-  }
-  if (tab === 2) {
-    return (
-      <div className="grid h-full place-items-center p-4">
-        <motion.div
-          animate={animate ? { rotateY: [0, 0, 180, 180] } : {}}
-          transition={{ duration: 3.4, repeat: animate ? Infinity : 0, times: [0, 0.4, 0.6, 1] }}
-          style={{ transformStyle: "preserve-3d" }}
-          className="surface-cream w-full rounded-xl border-2 border-ink p-3"
-        >
-          <p className="text-[11px] font-bold">Who wins tonight?</p>
-          <div className="mt-2 flex gap-2">
-            <span className="flex-1 rounded-lg border-2 border-magenta bg-magenta/15 py-2 text-center text-[11px] font-bold">TKR</span>
-            <span className="flex-1 rounded-lg border-2 border-line py-2 text-center text-[11px] font-bold">GAW</span>
-          </div>
-          <p className="ink-muted mt-2 text-[10px]">58% of fans are with you.</p>
-        </motion.div>
-      </div>
-    );
-  }
+/**
+ * One app screen.
+ *
+ * The mockup PNGs carry their own device bezel, so nothing is drawn around
+ * them — the hand-built phone frame that used to wrap this produced a phone
+ * inside a phone. `contain`, not `cover`, for the same reason: cropping would
+ * slice the device edges off.
+ */
+function PhoneScreen({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="flex flex-col gap-2 p-3">
-      <p className="flex items-center gap-1.5 text-[11px] font-bold">
-        <RunsIcon size={13} />
-        <motion.span
-          animate={animate ? { opacity: [1, 0.5, 1] } : {}}
-          transition={{ duration: 1.6, repeat: animate ? Infinity : 0 }}
-        >
-          1,700 Runs
-        </motion.span>
-      </p>
-      {["One-match live pass", "$15 off match-day food", "20% off cricket gear"].map((d, i) => (
-        <motion.div
-          key={d}
-          initial={{ x: 24, opacity: 0 }}
-          animate={animate ? { x: 0, opacity: 1 } : { x: 0, opacity: 1 }}
-          transition={{ duration: 0.45, delay: i * 0.3, repeat: animate ? Infinity : 0, repeatDelay: 2.2 }}
-          className="surface-cream flex items-center justify-between rounded-lg border-2 border-line px-2 py-1.5"
-        >
-          <span className="text-[11px] font-semibold">{d}</span>
-          <span className="rounded bg-gold px-1.5 py-0.5 text-[10px] font-bold text-ink">Redeem</span>
-        </motion.div>
-      ))}
-    </div>
+    <img
+      src={src}
+      alt={alt}
+      width={1419}
+      height={2796}
+      className="h-full w-full object-contain"
+      decoding="async"
+    />
   );
 }
 
+/**
+ * Cursor parallax on the device.
+ *
+ * The tilt is written to `phone.style.transform` rather than through state, so
+ * a pointer move never re-renders the section, and it eases toward the target
+ * so the device glides instead of snapping. Skipped entirely for coarse
+ * pointers and for anyone who asked for reduced motion.
+ */
+function usePhoneTilt(
+  stageRef: React.RefObject<HTMLElement | null>,
+  phoneRef: React.RefObject<HTMLElement | null>,
+) {
+  useEffect(() => {
+    const stage = stageRef.current;
+    const phone = phoneRef.current;
+    if (!stage || !phone) return;
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let raf = 0;
+    let tx = 0;
+    let ty = 0;
+    let cx = 0;
+    let cy = 0;
+
+    const apply = () => {
+      cx += (tx - cx) * 0.12;
+      cy += (ty - cy) * 0.12;
+      phone.style.transform =
+        `perspective(900px) rotateY(${cx.toFixed(2)}deg) rotateX(${(-cy).toFixed(2)}deg)`;
+      raf =
+        Math.abs(tx - cx) > 0.01 || Math.abs(ty - cy) > 0.01
+          ? requestAnimationFrame(apply)
+          : 0;
+    };
+    const kick = () => {
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
+
+    const onMove = (e: PointerEvent) => {
+      const r = stage.getBoundingClientRect();
+      // -1..1 across the section, scaled to a gentle tilt.
+      tx = ((e.clientX - r.left) / r.width - 0.5) * 2 * 10;
+      ty = ((e.clientY - r.top) / r.height - 0.5) * 2 * 8;
+      kick();
+    };
+    const onLeave = () => {
+      tx = 0;
+      ty = 0;
+      kick();
+    };
+
+    stage.addEventListener("pointermove", onMove);
+    stage.addEventListener("pointerleave", onLeave);
+    return () => {
+      stage.removeEventListener("pointermove", onMove);
+      stage.removeEventListener("pointerleave", onLeave);
+      cancelAnimationFrame(raf);
+    };
+  }, [stageRef, phoneRef]);
+}
+
 export function ModelSection() {
+  const { crowdFrames } = useSiteImages();
   const { track } = useRuns();
+  const content = useSiteContent();
+
+  /** Admin-uploaded screen for a tab, else the bundled one. */
+  const shotFor = (t: (typeof tiles)[number]) => imageOr(content, "appMockup", t.shot, t.id);
+
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.2 });
   const [tab, setTab] = useState(0);
   const reduced = useReducedMotion();
+  const phoneRef = useRef<HTMLDivElement>(null);
+  usePhoneTilt(ref, phoneRef);
 
   useEffect(() => {
     if (!inView || reduced) return;
@@ -130,23 +131,26 @@ export function ModelSection() {
         <span className="absolute inset-0 bg-gradient-to-r from-cream-2 via-cream-2/70 to-cream-2" />
       </div>
 
-      <div ref={ref} className="relative z-[2] mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(32px,5vw,64px)]">
+      <div ref={ref} className="relative z-[2] mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(24px,3.4vw,44px)]">
         <SectionHeader title="We built the model" sub="We also built a very loud cricket app." accent={ACCENT} />
 
         <div className="mt-8 grid items-center gap-8 md:grid-cols-[280px_minmax(0,1fr)_minmax(0,0.9fr)]">
-          {/* phone mockup: no notch, no hardware buttons, no shadow stack */}
-          <div className="mx-auto w-[248px]">
-            <div className="surface-cream-3 overflow-hidden rounded-[26px] border-4 border-ink p-2">
-              <div className="surface-cream-2 h-[420px] overflow-hidden rounded-[18px]">
-                <div className="surface-purple flex items-center justify-between px-3 py-2">
-                  <span className="t-micro">{tiles[tab].label}</span>
-                  <span className="t-micro flex items-center gap-1">
-                    <RunsIcon size={12} />
-                    <DigitRoll value={1700} />
-                  </span>
-                </div>
-                <PhoneScreen tab={tab} playing={inView} />
-              </div>
+          {/* No enter animation around the screen.
+              It used to be an AnimatePresence + motion.div fading in from
+              opacity 0. Under SSR that animation never started, so the wrapper
+              stayed at opacity 0 — and because the image is lazy, an invisible
+              image is also never fetched. The screen is the point of this
+              section; it does not wait on anything. */}
+          <div
+            ref={phoneRef}
+            className="mx-auto w-[248px] will-change-transform"
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            <div className="aspect-[1419/2796] w-full">
+              <PhoneScreen
+                src={shotFor(tiles[tab])}
+                alt={`${tiles[tab].label} screen in the Champhunt app`}
+              />
             </div>
           </div>
 
@@ -172,6 +176,8 @@ export function ModelSection() {
           </ul>
 
           <div className="grid grid-cols-2 gap-2">
+            {/* Eager: only four thumbnails, and lazily-loaded they were still
+                showing as empty bordered boxes when the section was on screen. */}
             {crowdFrames.map((f) => (
               <SmartImage
                 key={f.alt}
@@ -179,6 +185,7 @@ export function ModelSection() {
                 alt={f.alt}
                 width={1280}
                 height={640}
+                eager
                 className="aspect-[4/3] rounded-xl border-2 border-ink"
               />
             ))}

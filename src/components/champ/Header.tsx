@@ -3,30 +3,18 @@ import { AnimatePresence, motion } from "motion/react";
 import { Menu, X } from "lucide-react";
 import { Button, DigitRoll, RunsIcon } from "./primitives";
 import { nav } from "@/content/site.config";
+import { ChamphuntLogo, WillowLogo } from "./Logos";
 import { useRuns } from "@/lib/runs";
 
-function Lockup({ compact }: { compact?: boolean }) {
+function Lockup() {
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <span
-        className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-gold font-display text-[13px] leading-none text-ink"
-        aria-hidden="true"
-      >
-        C
-      </span>
-      <div className="min-w-0 leading-tight">
-        <span className="block truncate font-display text-[15px] text-cream sm:text-[17px]">Champhunt</span>
-        {!compact && (
-          <span className="t-micro cream-muted hidden truncate text-[9px] sm:block">Powered by Champhunt AI</span>
-        )}
-      </div>
-
-      <span aria-hidden="true" className="hidden h-5 w-px shrink-0 bg-cream/30 sm:block" />
-      <span className="t-micro hidden shrink-0 text-[10px] text-cream sm:inline">×</span>
-      <span className="t-micro hidden shrink-0 whitespace-nowrap text-[10px] text-cream sm:inline sm:text-[11px]">
-        Willow TV
-      </span>
-
+    <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+      {/* Both marks ride the top bar at every width — the wordmark placeholders
+          they replace read as unbranded on mobile, where the bar is all a
+          visitor sees of the partnership. */}
+      <ChamphuntLogo className="h-[16px] sm:h-[24px]" />
+      <span aria-hidden="true" className="h-4 w-px shrink-0 bg-cream/30 sm:h-5" />
+      <WillowLogo className="h-[26px] sm:h-[38px]" />
     </div>
   );
 }
@@ -164,6 +152,11 @@ export function Header() {
             transition={{ type: "spring", stiffness: 320, damping: 30 }}
             className="surface-indigo fixed inset-x-0 top-[56px] bottom-0 z-50 flex flex-col gap-6 overflow-y-auto px-5 py-8 md:hidden"
           >
+            <div className="flex items-center gap-3 border-b-2 border-cream/15 pb-5">
+              <ChamphuntLogo height={28} />
+              <span aria-hidden="true" className="h-6 w-px shrink-0 bg-cream/30" />
+              <WillowLogo height={48} />
+            </div>
             <span className="t-micro flex w-fit items-center gap-2 rounded-full border-2 border-gold px-3 py-1">
               <span aria-hidden="true" className="h-2 w-2 animate-live rounded-full bg-live" />
               CPL 2026

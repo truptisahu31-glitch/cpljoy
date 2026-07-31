@@ -136,7 +136,7 @@ export function HowItWorks() {
   const { track } = useRuns();
   return (
     <section id="how-it-works" className="surface-cream relative scroll-mt-[56px] md:scroll-mt-[66px]">
-      <div className="mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(32px,5vw,64px)]">
+      <div className="mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(24px,3.4vw,44px)]">
         <SectionHeader
           title="How it works"
           sub="Nine measurements, weights we tested, two we admit don't work yet."

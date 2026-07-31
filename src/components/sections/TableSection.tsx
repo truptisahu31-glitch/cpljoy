@@ -14,6 +14,7 @@ import { crowdFrames, rankings, site, teamOf, type Ranking } from "@/content/sit
 import { SUBJECTS, WEIGHTS, computeRating } from "@/lib/rating";
 import { useReducedMotion } from "@/lib/media";
 import { useRuns } from "@/lib/runs";
+import { useSiteImages } from "@/lib/site-images";
 
 const ACCENT = "var(--color-purple)";
 
@@ -146,7 +147,8 @@ function Row({
 }) {
   const team = teamOf(r.abbr);
   const rating = computeRating(r.marks);
-  const frame = crowdFrames[index % crowdFrames.length];
+  const { crowdFrames: frames } = useSiteImages();
+  const frame = frames[index % frames.length];
   const preseason = site.seasonStatus === "preseason";
 
   return (
@@ -244,15 +246,18 @@ export function TableSection() {
   const visible = showAll ? rankings : rankings.slice(0, 5);
 
   return (
-    <section id="rankings" className="surface-cream relative scroll-mt-[56px] overflow-hidden md:scroll-mt-[66px]">
+    <section
+      id="rankings"
+      className="surface-cream relative scroll-mt-[56px] overflow-hidden md:scroll-mt-[66px]"
+    >
       <div aria-hidden="true" className="tex-scan absolute inset-0 z-0 text-purple" />
 
-      <div className="relative z-[2] mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(32px,5vw,64px)]">
+      <div className="relative z-[2] mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(24px,3.4vw,44px)]">
         <div ref={headerRef}>
           <SectionHeader title="The table" sub="Who's playing well. Not who's got points." accent={ACCENT} />
         </div>
 
-        <p className="t-micro ink-muted mt-4">Powered by Champhunt AI · Updated Mondays, 9am ET</p>
+        <p className="t-micro ink-muted mt-4">Powered by Champhunt AI</p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {["01", "02", "03"].map((w, i) => (

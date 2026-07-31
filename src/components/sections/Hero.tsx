@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Button, DigitRoll, PlayerImage, SmartImage } from "../champ/primitives";
-import { heroSlides, rankings, site, teamOf } from "@/content/site.config";
+import { rankings, site, teamOf } from "@/content/site.config";
+import { useSiteImages } from "@/lib/site-images";
 import { computeRating } from "@/lib/rating";
 import { useReducedMotion } from "@/lib/media";
 import { useRuns } from "@/lib/runs";
@@ -15,6 +16,7 @@ const chipBySource: Record<string, string> = {
 };
 
 export function Hero() {
+  const { heroSlides } = useSiteImages();
   const reduced = useReducedMotion();
   const { openAuth, track, source } = useRuns();
   const [i, setI] = useState(0);
@@ -37,7 +39,7 @@ export function Hero() {
   return (
     <section
       id="top"
-      className="surface-indigo relative scroll-mt-[56px] overflow-hidden md:scroll-mt-[66px]"
+      className="surface-indigo relative flex min-h-[calc(100dvh-56px)] flex-col overflow-hidden scroll-mt-[56px] md:min-h-[calc(100dvh-66px)] md:scroll-mt-[66px]"
       aria-label="AI power rankings for CPL 2026"
     >
       {/* z-0 image layer */}
@@ -80,24 +82,15 @@ export function Hero() {
             "conic-gradient(from 200deg at 8% -10%, #FFF4E6 0 12deg, transparent 12deg), conic-gradient(from 120deg at 92% -10%, #FFF4E6 0 12deg, transparent 12deg)",
         }}
       />
-      {/* oversized rank numeral as artwork */}
-      <span
-        aria-hidden="true"
-        className="absolute bottom-0 left-0 z-[1] font-display leading-none text-cream/[0.12]"
-        style={{ fontSize: "clamp(180px, 34vw, 420px)" }}
-      >
-        1
-      </span>
-
       {/* z-2 content */}
-      <div className="relative z-[2] mx-auto grid max-w-[1320px] gap-8 px-[clamp(20px,5vw,64px)] pb-14 pt-[92px] md:min-h-[76dvh] md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:items-center md:pb-16 md:pt-[110px]">
+      <div className="relative z-[2] mx-auto grid w-full max-w-[1320px] flex-1 content-center gap-8 px-[clamp(20px,5vw,64px)] py-8 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:items-center md:py-10">
         <div className="min-w-0">
           <span className="t-micro inline-flex items-center gap-2 rounded-full border-2 border-gold px-3 py-1.5 text-cream">
             <span aria-hidden="true" className="h-2 w-2 animate-live rounded-full bg-live" />
             {chipBySource[source]}
           </span>
 
-          <h1 className="t-h1 mt-5 max-w-[20ch] text-cream">
+          <h1 className="mt-5 max-w-[18ch] text-cream" style={{ fontSize: "clamp(38px, 6vw, 88px)", lineHeight: 1.03 }}>
             {topTeam.name} are playing the best cricket in the Caribbean
           </h1>
 
@@ -123,7 +116,6 @@ export function Hero() {
             </Button>
           </div>
 
-          <p className="cream-muted mt-6 text-[13px]">{slide.venue}</p>
         </div>
 
         <div className="relative hidden h-full min-h-[320px] md:block">
@@ -131,23 +123,31 @@ export function Hero() {
             initial={{ x: 40, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.7, ease: "easeOut" }}
-            className="absolute bottom-0 right-[-6%] h-[112%] w-[92%]"
+            // Bottom-anchored and height-capped: on a full-screen hero the old
+            // 112% of a much taller column ran the figure past the section.
+            className="absolute inset-x-0 bottom-0 right-[-6%] mx-auto h-full max-h-[68dvh] w-[92%]"
           >
             <PlayerImage playerId="pooran" className="h-full w-full object-contain object-bottom" />
           </motion.div>
-          <div className="absolute right-2 top-2 flex items-center gap-2" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-            {heroSlides.map((s, idx) => (
-              <button
-                key={s.venue}
-                type="button"
-                aria-label={`Show ${s.venue}`}
-                aria-current={idx === i}
-                onClick={() => setI(idx)}
-                className={`h-3 w-3 rounded-full border-2 border-cream transition-colors ${idx === i ? "bg-gold" : "bg-transparent"}`}
-              />
-            ))}
-          </div>
         </div>
+      </div>
+
+      {/* Frame control, at the foot of the full-screen hero. */}
+      <div
+        className="relative z-[3] flex items-center justify-center gap-3 pb-5 md:pb-6"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        {heroSlides.map((s, idx) => (
+          <button
+            key={s.venue}
+            type="button"
+            aria-label={`Show ${s.venue}`}
+            aria-current={idx === i}
+            onClick={() => setI(idx)}
+            className={`h-3 w-3 rounded-full border-2 border-cream transition-colors ${idx === i ? "bg-gold" : "bg-transparent"}`}
+          />
+        ))}
       </div>
 
       {/* stat strip */}

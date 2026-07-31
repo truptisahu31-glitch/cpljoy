@@ -219,6 +219,17 @@
   cursor: none;
 }
 
+/* The custom cursor hides the native one by putting `no-cursor` on <body>, but
+   `cursor: none` inherits and buttons/links set their own `cursor: pointer`,
+   which wins. Bat mode *is* hovering a button, so the system arrow was always
+   visible in exactly the mode meant to replace it. Descendants are forced here.
+   Text fields are unaffected: the class is removed entirely while the pointer is
+   over one, so the caret still shows. */
+body.no-cursor,
+body.no-cursor * {
+  cursor: none !important;
+}
+
 /* ---------- loops ---------- */
 @keyframes marquee-x {
   from {

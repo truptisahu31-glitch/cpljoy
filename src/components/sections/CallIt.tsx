@@ -2,12 +2,21 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { Check } from "lucide-react";
 import { Button, SectionHeader, SmartImage, TeamLogo } from "../champ/primitives";
-import { crowdFrames, prediction, teamOf } from "@/content/site.config";
+import { prediction as bundled, teamOf } from "@/content/site.config";
+import { predictionFrom } from "@/lib/editable-questions";
+import { useSiteContent } from "@/lib/use-site-content";
+import { useSiteImages } from "@/lib/site-images";
 import { useRuns } from "@/lib/runs";
 
 const ACCENT = "var(--color-coral)";
 
 export function CallIt() {
+  // Question text, answers and copy are editable from /admin; the fixture,
+  // teams and timing stay with the bundled record.
+  const content = useSiteContent();
+  const edits = predictionFrom(content);
+  const prediction = { ...bundled, ...edits };
+  const { crowdFrames } = useSiteImages();
   const { credit, openAuth, track } = useRuns();
   const [picked, setPicked] = useState<string | null>(null);
   const closed = false; // driven by closes_at in the live build
@@ -26,7 +35,7 @@ export function CallIt() {
         <span className="absolute inset-0 bg-gradient-to-r from-cream via-cream/55 to-cream" />
       </div>
 
-      <div className="relative z-[2] mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(32px,5vw,64px)]">
+      <div className="relative z-[2] mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(24px,3.4vw,44px)]">
         <SectionHeader title="Call it" sub="No account. No card. Just pick." accent={ACCENT} />
 
         <div className="mt-8 flex justify-center">
