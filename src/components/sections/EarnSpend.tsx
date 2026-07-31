@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Check, Coins, Gift, Lock, Target } from "lucide-react";
 import { Button, DigitRoll, RunsIcon, SectionHeader, SmartImage } from "../champ/primitives";
+import { useReducedMotion } from "@/lib/media";
 import { useRuns } from "@/lib/runs";
 import { useSiteImages } from "@/lib/site-images";
 
@@ -31,6 +32,78 @@ const steps = [
 ];
 
 type Deal = ReturnType<typeof useSiteImages>["deals"][number];
+
+/** Pinned scroll distance over which the Runs total climbs from 0 to the
+ *  priciest deal. About a screenful, so the unlock reads as a deliberate
+ *  scrub rather than something that flicks past. */
+const RUNWAY_PX = 760;
+/** The last card unlocks at this point, leaving a beat where every card is
+ *  green before the pin releases into the next section. */
+const ALL_GREEN_AT = 0.88;
+
+/**
+ * Holds the stage still for `RUNWAY_PX` of scrolling and turns that distance
+ * into a Runs figure.
+ *
+ * The pin is a transform, not `position: sticky`. Sticky silently refused to
+ * engage for this block — the stage kept scrolling out from under the header
+ * while the runway's empty tail showed below it — so the hold is done by
+ * translating the stage down by exactly the distance scrolled, which is what
+ * sticky would have computed anyway and is not at the mercy of a containing
+ * block somewhere up the tree.
+ *
+ * The transform is written straight to the node inside the rAF rather than
+ * through state: the pin has to track the scroll frame for frame, and a
+ * re-render per frame to move a box is waste. `runs` is state because it
+ * changes the cards, but it is snapped to the slider's 100-Run step so it
+ * settles rather than churning on every pixel.
+ *
+ * Scrubs both ways — scrolling back up walks the total down and re-locks.
+ */
+function useScrollPin(
+  runway: React.RefObject<HTMLDivElement | null>,
+  stage: React.RefObject<HTMLDivElement | null>,
+  max: number,
+  active: boolean,
+) {
+  const [runs, setRuns] = useState(0);
+
+  useEffect(() => {
+    if (!active) return;
+    const track = runway.current;
+    const el = stage.current;
+    if (!track || !el) return;
+
+    let raf = 0;
+    const read = () => {
+      raf = 0;
+      const header = window.matchMedia("(min-width: 768px)").matches ? 66 : 56;
+      // How far the top of the runway has travelled past the header.
+      const gone = header - track.getBoundingClientRect().top;
+      const held = Math.min(RUNWAY_PX, Math.max(0, gone));
+      el.style.transform = held > 0 ? `translate3d(0, ${held}px, 0)` : "";
+
+      const p = held / RUNWAY_PX;
+      const eased = Math.min(1, p / ALL_GREEN_AT);
+      setRuns(Math.round((eased * max) / 100) * 100);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(read);
+    };
+
+    read();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(raf);
+      el.style.transform = "";
+    };
+  }, [runway, stage, max, active]);
+
+  return runs;
+}
 
 /**
  * "What would N Runs get me?"
@@ -80,7 +153,7 @@ function SpendSlider({
             onClick={onReset}
             className="ml-auto text-[13px] font-semibold text-purple underline underline-offset-4"
           >
-            Back to my {balance.toLocaleString()}
+            Follow my scroll again
           </button>
         )}
       </div>
@@ -138,11 +211,39 @@ export function EarnSpend() {
   const { deals } = useSiteImages();
   const { balance, credit, openAuth, track } = useRuns();
 
-  // `null` means "follow whatever they have actually earned".
+  // `null` means "follow the scroll". Dragging the slider pins a figure and
+  // takes the value off the scrub until the reset button hands it back.
   const [sim, setSim] = useState<number | null>(null);
-  const runs = sim ?? balance;
 
   const sorted = useMemo(() => [...deals].sort((a, b) => a.cost - b.cost), [deals]);
+  const maxCost = useMemo(() => sorted.reduce((m, d) => Math.max(m, d.cost), 0), [sorted]);
+
+  const runway = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  const rail = useRef<HTMLUListElement>(null);
+  const reduced = useReducedMotion();
+  // Reduced motion keeps the old behaviour: no pin, no scrub, the figure just
+  // follows what the visitor has actually earned.
+  const scrub = !reduced;
+  const scrollRuns = useScrollPin(runway, stage, maxCost, scrub);
+  const runs = sim ?? (scrub ? scrollRuns : balance);
+
+  /* Phone: walk the rail along with the unlocks.
+     Only one card fits the screen at a time, so without this the scrub unlocks
+     four cards the visitor never sees. The rail is a scroll container of its
+     own — moving `scrollLeft` cannot disturb the page's vertical scroll, which
+     `scrollIntoView` would. No-ops on `lg`, where the rail is a five-column
+     grid with nothing to scroll. */
+  const unlockedCount = sorted.filter((d) => runs >= d.cost).length;
+  useEffect(() => {
+    const el = rail.current;
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    // Park on the newest unlocked card, or the first still-locked one at the
+    // start, so there is always a card in view rather than a gap.
+    const card = el.children[Math.max(0, unlockedCount - 1)] as HTMLElement | undefined;
+    if (!card) return;
+    el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
+  }, [unlockedCount]);
 
   const touch = () => credit("deal-touch");
 
@@ -154,7 +255,9 @@ export function EarnSpend() {
   };
 
   return (
-    <section id="deals" className="surface-cream-2 relative scroll-mt-[56px] overflow-hidden md:scroll-mt-[66px]">
+    // No `overflow-hidden` here: it would make this section the scroll
+    // container for the sticky child below, and the pin would never engage.
+    <section id="deals" className="surface-cream-2 relative scroll-mt-[56px] md:scroll-mt-[66px]">
       <div aria-hidden="true" className="tex-perf absolute inset-0 z-0 text-gold" />
 
       <div className="relative z-[2] mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(24px,3.4vw,44px)]">
@@ -206,21 +309,44 @@ export function EarnSpend() {
           ))}
         </ul>
 
-        <SpendSlider
-          runs={runs}
-          balance={balance}
-          deals={sorted}
-          touched={sim !== null}
-          onChange={setSim}
-          onReset={() => setSim(null)}
-        />
+        {/* Scroll runway.
+            The padding is the distance the stage is held for, so the page
+            reserves exactly the scroll the pin consumes. Deliberately plain
+            CSS: driving this height from a measured `stageH` in state fed a
+            loop — height changed, the runway's geometry moved, `runs` changed,
+            the cards changed height — and the counter oscillated as you
+            scrolled. Layout resolves it here, React never sees it.
+
+            The stage fills the viewport and centres its content so the held
+            frame has no empty tail below it. Only the slider and the cards are
+            pinned; the whole section is ~930px and would not fit. */}
+        <div ref={runway} style={scrub ? { paddingBottom: RUNWAY_PX } : undefined}>
+          <div
+            ref={stage}
+            className={
+              scrub
+                ? "flex min-h-[calc(100svh-56px)] flex-col justify-center will-change-transform md:min-h-[calc(100svh-66px)]"
+                : undefined
+            }
+          >
+            <SpendSlider
+              runs={runs}
+              balance={balance}
+              deals={sorted}
+              touched={sim !== null}
+              onChange={setSim}
+              onReset={() => setSim(null)}
+            />
 
         {/* `items-stretch` (the flex default) plus `h-full` on each card makes
             every card the same height, and the fixed row slots inside line the
             cost and action rows up across all five — the offer text runs
             to two lines on some cards, which used to push everything below it
             out of step. */}
-        <ul className="mt-6 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto pb-3 lg:grid lg:grid-cols-5 lg:overflow-visible">
+        <ul
+              ref={rail}
+              className="mt-6 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto pb-3 lg:grid lg:grid-cols-5 lg:overflow-visible"
+            >
           {sorted.map((d) => {
             const open = runs >= d.cost;
             return (
@@ -305,8 +431,11 @@ export function EarnSpend() {
               </li>
             );
           })}
-        </ul>
+            </ul>
+          </div>
+        </div>
 
+        {/* Outside the pin, so it arrives once every card has gone green. */}
         <div className="mt-8 flex justify-center">
           <Button className="w-full sm:w-auto" onClick={() => openAuth("deals")}>
             Claim your Runs

@@ -83,7 +83,11 @@
     color: var(--fg);
     font-family: var(--font-body);
     font-variant-numeric: tabular-nums;
-    overflow-x: hidden;
+    /* `clip`, not `hidden`: `overflow-x: hidden` computes overflow-y to `auto`,
+       which makes <body> its own scroll container and stops `position: sticky`
+       from ever engaging against the viewport. `clip` contains the same
+       horizontal overflow without creating a scroll box. */
+    overflow-x: clip;
   }
 
   h1,

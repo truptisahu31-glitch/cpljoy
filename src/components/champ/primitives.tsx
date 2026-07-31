@@ -81,6 +81,17 @@ export function DigitRoll({ value, decimals = 0, className, prefix, suffix }: Di
     if (inView) setRolled(true);
   }, [inView]);
 
+  /* Correctness floor for the roll.
+     Until `rolled` flips, every column sits at 0 — so a counter whose observer
+     never reports (offscreen at mount, inside a sticky block, a throttled
+     background tab) renders as "000" instead of its value. The roll is
+     decoration; the number is not. This releases it shortly after mount
+     regardless, and the in-view path above still wins when it fires first. */
+  useEffect(() => {
+    const t = window.setTimeout(() => setRolled(true), 1200);
+    return () => window.clearTimeout(t);
+  }, []);
+
   return (
     <span ref={ref} className={cn("tnum inline-flex items-baseline whitespace-nowrap", className)}>
       {prefix}
