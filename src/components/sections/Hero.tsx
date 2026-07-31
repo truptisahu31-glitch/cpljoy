@@ -82,6 +82,35 @@ export function Hero() {
             "conic-gradient(from 200deg at 8% -10%, #FFF4E6 0 12deg, transparent 12deg), conic-gradient(from 120deg at 92% -10%, #FFF4E6 0 12deg, transparent 12deg)",
         }}
       />
+      {/* The hero figure.
+          Positioned against the section rather than its grid column, because
+          the column cannot express the one constraint that matters: the figure
+          has to sit between the header and the stat strip. Anchoring top and
+          bottom to fixed insets means it is as large as that band allows at any
+          viewport and can never be sliced by the strip, which paints its own
+          background over whatever reaches it.
+
+          `object-bottom` puts the boots on the box floor, so the clearance is
+          exact; the head lands wherever the aspect ratio takes it.
+
+          It sits ABOVE the stat strip in z-order. The strip paints its own
+          background, so anything behind it is cut rather than overlapped — that
+          is what was slicing the legs. Drawing the figure on top lets it stand
+          in front of the strip and reach lower without losing its boots.
+
+          No enter animation: this used to slide in from `opacity: 0`, and when
+          that stalled the subject of the hero sat at a third of its opacity,
+          washed into the background. */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-[3] hidden w-[52%] md:block">
+        <div className="absolute bottom-[48px] right-[1%] top-[10px] w-full">
+          <PlayerImage
+            playerId="pooran"
+            eager
+            className="h-full w-full object-contain object-bottom"
+          />
+        </div>
+      </div>
+
       {/* z-2 content */}
       <div className="relative z-[2] mx-auto grid w-full max-w-[1320px] flex-1 content-center gap-8 px-[clamp(20px,5vw,64px)] py-8 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:items-center md:py-10">
         <div className="min-w-0">
@@ -118,18 +147,7 @@ export function Hero() {
 
         </div>
 
-        <div className="relative hidden h-full min-h-[320px] md:block">
-          <motion.div
-            initial={{ x: 40, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            // Bottom-anchored and height-capped: on a full-screen hero the old
-            // 112% of a much taller column ran the figure past the section.
-            className="absolute inset-x-0 bottom-0 right-[-6%] mx-auto h-full max-h-[68dvh] w-[92%]"
-          >
-            <PlayerImage playerId="pooran" className="h-full w-full object-contain object-bottom" />
-          </motion.div>
-        </div>
+        <div className="relative hidden h-full min-h-[320px] md:block" />
       </div>
 
       {/* Frame control, at the foot of the full-screen hero. */}

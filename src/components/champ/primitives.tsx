@@ -265,8 +265,11 @@ export function PlayerImage({
   className,
   width = 1024,
   height = 1536,
+  eager,
 }: {
   playerId: string;
+  /** The hero figure is above the fold — lazy loading left it blank. */
+  eager?: boolean;
   className?: string;
   width?: number;
   height?: number;
@@ -297,7 +300,7 @@ export function PlayerImage({
       aria-hidden="true"
       width={width}
       height={height}
-      loading="lazy"
+      loading={eager ? "eager" : "lazy"}
       onError={() => setFailed(true)}
       className={cn("object-contain", className)}
     />
