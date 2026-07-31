@@ -43,16 +43,19 @@ export function CallIt() {
             animate={{ rotateY: picked ? 180 : 0 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
             style={{ transformStyle: "preserve-3d" }}
-            className="relative w-full max-w-[560px]"
+            className="grid w-full max-w-[560px]"
           >
+            {/* Both faces share one grid cell, so the wrapper takes the height of
+                the taller side. As absolutely-positioned overlays the back face
+                was clipped to the front's height and its buttons spilled through
+                the border. */}
             {/* front */}
             <div
-              className="surface-cream-2 rounded-2xl border-2 border-ink p-5 shadow-[6px_6px_0_0_var(--color-coral)]"
+              className="surface-cream-2 rounded-2xl border-2 border-ink p-5 shadow-[6px_6px_0_0_var(--color-coral)] [grid-area:1/1]"
               style={{ backfaceVisibility: "hidden" }}
             >
               <p className="font-display text-[19px]">{prediction.fixture_label}</p>
-              <p className="ink-muted mt-1 text-[13px]">{prediction.meta}</p>
-              <p className="mt-4 text-[15px] font-semibold">{prediction.question}</p>
+              <p className="mt-3 text-[15px] font-semibold">{prediction.question}</p>
 
               <div className={`mt-3 grid gap-3 ${layout}`}>
                 {prediction.options.map((o, i) => {
@@ -95,12 +98,11 @@ export function CallIt() {
                   );
                 })}
               </div>
-              <p className="ink-muted mt-3 text-[12px]">{prediction.edge_case_rule}</p>
             </div>
 
             {/* back */}
             <div
-              className="surface-cream-2 absolute inset-0 rounded-2xl border-2 border-ink p-5 shadow-[6px_6px_0_0_var(--color-coral)]"
+              className="surface-cream-2 rounded-2xl border-2 border-ink p-5 shadow-[6px_6px_0_0_var(--color-coral)] [grid-area:1/1]"
               style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
             >
               <p className="font-display text-[19px]">{prediction.split}% of fans are with you.</p>

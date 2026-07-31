@@ -114,7 +114,7 @@ export function Hero() {
       {/* z-2 content */}
       <div className="relative z-[2] mx-auto grid w-full max-w-[1320px] flex-1 content-center gap-8 px-[clamp(20px,5vw,64px)] py-8 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:items-center md:py-10">
         <div className="min-w-0">
-          <span className="t-micro inline-flex items-center gap-2 rounded-full border-2 border-gold px-3 py-1.5 text-cream">
+          <span className="t-micro inline-flex items-center gap-2 rounded-full border-2 border-gold px-2.5 py-1 text-[10px] text-cream md:px-3 md:py-1.5 md:text-[12px]">
             <span aria-hidden="true" className="h-2 w-2 animate-live rounded-full bg-live" />
             {chipBySource[source]}
           </span>
@@ -129,13 +129,13 @@ export function Hero() {
                 track("hero_cta", { cta: "see_the_table" });
                 document.getElementById("rankings")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="w-full sm:w-auto"
+              className="h-[60px] w-full px-7 text-[16px] sm:w-auto md:h-[56px]"
             >
               See the table
             </Button>
             <Button
               variant="ghost"
-              className="w-full text-cream sm:w-auto"
+              className="h-[60px] w-full px-7 text-[16px] text-cream sm:w-auto md:h-[56px]"
               onClick={() => {
                 track("hero_cta", { cta: "play_a_prediction" });
                 document.getElementById("call-it")?.scrollIntoView({ behavior: "smooth" });
@@ -170,18 +170,18 @@ export function Hero() {
 
       {/* stat strip */}
       <div className="relative z-[2] border-t-2 border-purple bg-indigo/85">
-        <ul className="mx-auto grid max-w-[1320px] grid-cols-2 gap-px px-[clamp(20px,5vw,64px)] py-4 md:grid-cols-4 md:py-0">
+        <ul className="mx-auto grid max-w-[1320px] grid-cols-4 gap-px px-[clamp(20px,5vw,64px)] py-4 md:py-0">
           {[
             { n: site.tournament.teams, label: "teams" },
             { n: site.tournament.matches, label: "matches" },
             { n: site.tournament.rankings, label: "weekly rankings" },
             { n: site.tournament.measurements, label: "measurements" },
           ].map((s) => (
-            <li key={s.label} className="flex min-h-[70px] flex-col justify-center gap-1 py-3 md:h-[80px] md:flex-row md:items-center md:gap-3">
-              <span className="font-display text-[28px] leading-none text-gold md:text-[32px]">
+            <li key={s.label} className="flex min-h-[70px] min-w-0 flex-col items-center justify-center gap-1 py-3 text-center md:h-[80px] md:flex-row md:items-center md:gap-3 md:text-left">
+              <span className="font-display text-[20px] leading-none text-gold sm:text-[26px] md:text-[34px]">
                 <DigitRoll value={s.n} />
               </span>
-              <span className="t-micro cream-muted">{s.label}</span>
+              <span className="t-micro cream-muted text-[9px] leading-tight sm:text-[10px] md:text-[12px]">{s.label}</span>
             </li>
           ))}
         </ul>

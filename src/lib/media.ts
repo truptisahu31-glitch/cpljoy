@@ -13,6 +13,20 @@ export function useFinePointer() {
   return fine;
 }
 
+/** True at Tailwind's `md` and up. The custom cursor's artwork is `hidden md:block`,
+ *  so below it the native cursor has to come back or there is no cursor at all. */
+export function useWideViewport() {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setWide(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return wide;
+}
+
 export function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {

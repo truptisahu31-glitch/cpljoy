@@ -223,8 +223,28 @@ export function SmartImage({
 
 /* ----------------------------------------------------------------- TeamLogo */
 
-export function TeamLogo({ abbr, size = 34 }: { abbr: string; size?: number }) {
+/**
+ * `color` and `logo` override the bundled team record.
+ *
+ * An uploaded week can name a side we don't ship art for, and `teamOf` answers
+ * an unknown abbr with the first team — which would put Trinbago's crest and
+ * pink beside someone else's name. Passing the resolved identity in lets the
+ * caller say "no logo", and the abbr initials render instead.
+ */
+export function TeamLogo({
+  abbr,
+  size = 34,
+  color,
+  logo,
+}: {
+  abbr: string;
+  size?: number;
+  color?: string;
+  logo?: string | null;
+}) {
   const team = teamOf(abbr);
+  const tint = color ?? team.color;
+  const src = logo === undefined ? team.logo : logo;
   const [ok, setOk] = useState(false);
   return (
     <span
@@ -232,26 +252,28 @@ export function TeamLogo({ abbr, size = 34 }: { abbr: string; size?: number }) {
       style={{
         width: size,
         height: size,
-        borderColor: team.color,
-        backgroundColor: `${team.color}2E`,
+        borderColor: tint,
+        backgroundColor: `${tint}2E`,
       }}
       aria-hidden="true"
     >
-      <img
-        src={team.logo}
-        alt=""
-        width={size}
-        height={size}
-        className={ok ? "h-full w-full object-contain" : "hidden"}
-        onLoad={() => setOk(true)}
-        onError={() => setOk(false)}
-      />
+      {src && (
+        <img
+          src={src}
+          alt=""
+          width={size}
+          height={size}
+          className={ok ? "h-full w-full object-contain" : "hidden"}
+          onLoad={() => setOk(true)}
+          onError={() => setOk(false)}
+        />
+      )}
       {!ok && (
         <span
           className="font-display leading-none"
-          style={{ fontSize: Math.max(10, size * 0.36), color: team.color }}
+          style={{ fontSize: Math.max(10, size * 0.36), color: tint }}
         >
-          {team.abbr}
+          {abbr || team.abbr}
         </span>
       )}
     </span>

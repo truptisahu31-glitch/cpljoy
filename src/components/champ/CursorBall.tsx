@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
-import { useFinePointer, useReducedMotion } from "@/lib/media";
+import { useFinePointer, useReducedMotion, useWideViewport } from "@/lib/media";
 
 /* ---------------------------------------------------------------------------
    Desktop-only cricket cursor.
@@ -100,6 +100,7 @@ const SPARK_MS = 820;
 
 export function CursorBall({ enabled }: { enabled: boolean }) {
   const fine = useFinePointer();
+  const wide = useWideViewport();
   const reduced = useReducedMotion();
   const [active, setActive] = useState(false);
   const [big, setBig] = useState(false);
@@ -178,7 +179,11 @@ export function CursorBall({ enabled }: { enabled: boolean }) {
   const rotDeg9 = useTransform(rotT9, (v) => `${v}deg`);
 
   useEffect(() => {
-    if (!enabled || !fine || reduced) {
+    /* `wide` as well as `fine`: narrowing a desktop window past `md` hides the
+       cursor artwork but used to leave `no-cursor` on <body>, so the viewport
+       had no pointer at all. Below 768px the system cursor comes back, and
+       widening past it hands the ball and bat over again. */
+    if (!enabled || !fine || !wide || reduced) {
       setActive(false);
       document.body.classList.remove("no-cursor");
       return;
@@ -277,7 +282,7 @@ export function CursorBall({ enabled }: { enabled: boolean }) {
       document.body.classList.remove("no-cursor");
       setActive(false);
     };
-  }, [enabled, fine, reduced, x, y, angle]);
+  }, [enabled, fine, wide, reduced, x, y, angle]);
 
   if (!active) return null;
 

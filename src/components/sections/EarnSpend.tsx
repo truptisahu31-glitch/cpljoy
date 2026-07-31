@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Check, Coins, Gift, Lock, Target } from "lucide-react";
-import { Button, DigitRoll, Reveal, RunsIcon, SectionHeader, SmartImage } from "../champ/primitives";
+import { Button, DigitRoll, RunsIcon, SectionHeader, SmartImage } from "../champ/primitives";
 import { useRuns } from "@/lib/runs";
 import { useSiteImages } from "@/lib/site-images";
 
@@ -217,7 +217,7 @@ export function EarnSpend() {
 
         {/* `items-stretch` (the flex default) plus `h-full` on each card makes
             every card the same height, and the fixed row slots inside line the
-            cost, Terms and action rows up across all five — the offer text runs
+            cost and action rows up across all five — the offer text runs
             to two lines on some cards, which used to push everything below it
             out of step. */}
         <ul className="mt-6 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto pb-3 lg:grid lg:grid-cols-5 lg:overflow-visible">
@@ -226,6 +226,10 @@ export function EarnSpend() {
             return (
               <li
                 key={d.id}
+                // The deal-touch credit used to hang off the Terms disclosure.
+                // With that gone, engaging with the card itself is the signal.
+                onClickCapture={touch}
+                onMouseEnter={touch}
                 className="surface-cream group flex h-full w-[82vw] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border-2 transition-[border-color,box-shadow] duration-300 sm:w-[62vw] lg:w-auto"
                 style={{
                   borderColor: open ? "var(--color-win)" : "var(--color-ink)",
@@ -274,14 +278,6 @@ export function EarnSpend() {
                       <DigitRoll value={d.cost} />
                     </span>
                   </span>
-
-                  <div
-                    className="flex min-h-[40px] items-start"
-                    onClickCapture={touch}
-                    onMouseEnter={touch}
-                  >
-                    <Reveal label="Terms">{d.terms}</Reveal>
-                  </div>
 
                   <div className="mt-auto pt-1">
                     {open ? (

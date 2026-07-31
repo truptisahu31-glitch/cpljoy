@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
+import { ChevronDown } from "lucide-react";
+import { useWideViewport } from "@/lib/media";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Button, DigitRoll, Reveal, TeamLogo } from "@/components/champ/primitives";
@@ -28,12 +30,38 @@ export const Route = createFileRoute("/methodology")({
   component: Methodology,
 });
 
+/**
+ * Below `md` the page's two interactive blocks — nine sliders and a nine-row
+ * derivation — accounted for most of the scroll, and a phone reader had to
+ * swipe past both to reach the rest. They fold behind a tap there and render
+ * inline, exactly as before, from `md` up.
+ */
+function MobileFold({
+  label,
+  children,
+}: {
+  label: string;
+  children: (compact: boolean) => ReactNode;
+}) {
+  const wide = useWideViewport();
+  if (wide) return <>{children(false)}</>;
+  return (
+    <details className="surface-cream-2 mt-6 rounded-2xl border-2 border-ink">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-display text-[19px]">
+        {label}
+        <ChevronDown size={20} aria-hidden="true" className="shrink-0" />
+      </summary>
+      <div className="px-4 pb-4">{children(true)}</div>
+    </details>
+  );
+}
+
 function normalise(raw: number[]) {
   const sum = raw.reduce((a, b) => a + b, 0) || 1;
   return raw.map((r) => r / sum);
 }
 
-function Sandbox() {
+function Sandbox({ compact }: { compact: boolean }) {
   const [raw, setRaw] = useState<number[]>(WEIGHTS.map((w) => w * 100));
   const weights = useMemo(() => normalise(raw), [raw]);
 
@@ -60,11 +88,9 @@ function Sandbox() {
         : "Bolder than ours.";
 
   return (
-    <section className="surface-cream-2 mt-10 rounded-2xl border-2 border-ink p-5">
-      <h2 className="font-display text-[24px]">The weight sandbox</h2>
-      <p className="ink-muted mt-1 text-[14px]">
-        Normalised to 100% — the real engine does the same.
-      </p>
+    <section className={compact ? "" : "surface-cream-2 mt-10 rounded-2xl border-2 border-ink p-5"}>
+      {!compact && <h2 className="font-display text-[24px]">The weight sandbox</h2>}
+      <p className="ink-muted text-[14px]">Normalised to 100% — the real engine does the same.</p>
 
       <div className="mt-5 grid gap-6 md:grid-cols-2">
         <ul className="flex flex-col gap-3">
@@ -158,15 +184,15 @@ function Sandbox() {
   );
 }
 
-function WorkedExample() {
+function WorkedExample({ compact }: { compact: boolean }) {
   const [abbr, setAbbr] = useState("BR");
   const r = rankings.find((x) => x.abbr === abbr)!;
   let running = 0;
 
   return (
-    <section className="mt-10">
-      <h2 className="font-display text-[24px]">Worked example</h2>
-      <div className="mt-3 flex flex-wrap gap-2">
+    <section className={compact ? "" : "mt-10"}>
+      {!compact && <h2 className="font-display text-[24px]">Worked example</h2>}
+      <div className={compact ? "flex flex-wrap gap-2" : "mt-3 flex flex-wrap gap-2"}>
         {rankings.map((x) => (
           <button
             key={x.abbr}
@@ -214,19 +240,22 @@ function Methodology() {
 
   return (
     <div className="surface-cream min-h-screen">
-      <header className="surface-indigo sticky top-0 z-40 flex h-[66px] items-center justify-between px-5">
-        <Link to="/" className="font-display text-[18px] text-cream">
-          Champhunt <span className="t-micro">× Willow TV</span>
-        </Link>
-        <Link to="/" className="text-[14px] font-semibold text-gold">
-          ← Back to the rankings
-        </Link>
+      <header className="surface-indigo sticky top-0 z-40 h-[66px]">
+        <div className="mx-auto flex h-full max-w-[1320px] items-center justify-between px-[clamp(20px,5vw,64px)]">
+          <Link to="/" className="font-display text-[18px] text-cream">
+            Champhunt <span className="t-micro">× Willow TV</span>
+          </Link>
+          {/* The full label crowds the lockup off the bar on a phone. */}
+          <Link to="/" className="shrink-0 text-[14px] font-semibold text-gold">
+            ← Back<span className="hidden sm:inline"> to the rankings</span>
+          </Link>
+        </div>
       </header>
 
-      <main className="mx-auto max-w-[720px] px-5 py-12">
+      <main className="mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-8 md:py-12">
         <h1 className="t-h1">How the table is built</h1>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 md:mt-8">
           <p className="surface-cream-2 rounded-xl border-2 border-ink p-4 text-[14px]">
             The league table asks: who has earned the most points?
           </p>
@@ -238,7 +267,7 @@ function Methodology() {
           Which is why a team can sit fourth in the table and top this list.
         </p>
 
-        <blockquote className="mt-8 rounded-xl border-l-4 border-purple bg-cream-2 p-4 text-[15px]">
+        <blockquote className="mt-6 md:mt-8 rounded-xl border-l-4 border-purple bg-cream-2 p-4 text-[15px]">
           The maths decides the order. The AI does not. Every position is computed by fixed formulas from match
           data. The model only writes the sentence explaining a position — it never sees, chooses, or influences
           the rank. A human checks every sentence before it publishes.
@@ -254,9 +283,9 @@ function Methodology() {
           <span className="flex flex-wrap items-center gap-2">→ blurb → human review → publish</span>
         </div>
 
-        <Sandbox />
+        <MobileFold label="The weight sandbox">{(compact) => <Sandbox compact={compact} />}</MobileFold>
 
-        <section className="mt-10 grid gap-4 sm:grid-cols-3">
+        <section className="mt-8 grid gap-4 sm:grid-cols-3 md:mt-10">
           {[
             { big: "0.69 → 0.76", line: "Held-out Spearman correlation after fitting on 300 simulated seasons." },
             { big: "Rejected", line: "The 0.892 optimum put ~75% onto the two phase metrics and Win% to 0.05." },
@@ -269,7 +298,7 @@ function Methodology() {
           ))}
         </section>
 
-        <section className="mt-10">
+        <section className="mt-8 md:mt-10">
           <h2 className="font-display text-[24px]">Correct #1</h2>
           <p className="ink-muted mt-2 text-[14px]">
             The fit moved correct top-team calls from <DigitRoll value={46} suffix="%" /> to{" "}
@@ -277,9 +306,9 @@ function Methodology() {
           </p>
         </section>
 
-        <WorkedExample />
+        <MobileFold label="Worked example">{(compact) => <WorkedExample compact={compact} />}</MobileFold>
 
-        <section className="mt-10 flex flex-col gap-3">
+        <section className="mt-8 flex flex-col gap-3 md:mt-10">
           <h2 className="font-display text-[24px]">The small print</h2>
           <Reveal label="Full formulas">
             Momentum: α = 0.35, seeded 0.5, half-life ≈1.6 matches. Five further metrics exist — expected wins,
@@ -294,7 +323,7 @@ function Methodology() {
           </p>
         </section>
 
-        <section className="surface-cream-2 mt-10 rounded-2xl border-2 border-ink p-5">
+        <section className="surface-cream-2 mt-8 rounded-2xl border-2 border-ink p-5 md:mt-10">
           <h2 className="font-display text-[22px]">Get the table every Monday.</h2>
           <form
             className="mt-3 flex flex-col gap-2 sm:flex-row"
@@ -317,7 +346,7 @@ function Methodology() {
           </form>
         </section>
 
-        <p className="mt-10">
+        <p className="mt-8 md:mt-10">
           <Link to="/" className="text-[15px] font-semibold text-purple underline">
             ← Back to the rankings
           </Link>

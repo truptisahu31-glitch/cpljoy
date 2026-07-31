@@ -508,6 +508,269 @@ function Analytics({
 }
 
 
+/* ----------------------------- power rankings ---------------------------- */
+
+type WeekMeta = {
+  week: number;
+  weekLabel: string;
+  season: string;
+  publishedAt: string;
+  matchCount: number;
+};
+
+type UploadResult = {
+  week: number;
+  weekLabel: string;
+  season: string;
+  teams: number;
+  comparedWith: number | null;
+  weeks: WeekMeta[];
+};
+
+/**
+ * Publishing weeks of the power ranking table.
+ *
+ * The file is the Willow Predictor's "Export for website" download, uploaded
+ * here unmodified. Each upload becomes one week; the home page grows a numbered
+ * button per published week and the newest is what a visitor lands on. Deleting
+ * every week is a supported state, not a broken one — the table falls back to
+ * the week bundled into the site.
+ */
+function Rankings({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [weeks, setWeeks] = useState<WeekMeta[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`${ANALYTICS_BASE}/power-rankings/weeks?site=${SITE}`);
+      if (!res.ok) return;
+      const json = (await res.json()) as { data?: WeekMeta[] };
+      setWeeks(Array.isArray(json.data) ? json.data : []);
+    } catch {
+      /* informational panel — a failure here must not block the console */
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const upload = async (file: File) => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      // Parsed here so a plainly broken file is rejected before it travels.
+      let payload: Record<string, unknown>;
+      try {
+        payload = JSON.parse(await file.text()) as Record<string, unknown>;
+      } catch {
+        throw new Error(`${file.name} is not valid JSON.`);
+      }
+
+      // The Predictor stamps its export for cplxch unless told otherwise, and
+      // the service takes the destination site from the file. Without this, a
+      // stock export uploaded here would publish to the wrong site — and
+      // overwrite that site's week while doing it.
+      payload.site = SITE;
+
+      const res = await fetch(`${ANALYTICS_BASE}/power-rankings/admin/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 401) {
+        onExpired();
+        return;
+      }
+      if (!res.ok) throw new Error(await readError(res, "Upload failed"));
+      const json = (await res.json()) as { data?: UploadResult };
+      const r = json.data;
+      if (r) {
+        setWeeks(r.weeks ?? []);
+        setNotice(
+          `Published ${r.weekLabel} (${r.season}) — ${r.teams} teams. ` +
+            (r.comparedWith
+              ? `Movement measured against week ${r.comparedWith}.`
+              : "First week published, so every team shows as new.") +
+            " The live site picks this up on its next load.",
+        );
+      } else {
+        await load();
+        setNotice("Published. The live site picks it up on its next load.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const removeWeek = async (week: number, season: string) => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch(
+        `${ANALYTICS_BASE}/power-rankings/admin/week/${week}?site=${SITE}&season=${encodeURIComponent(season)}`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) throw new Error(await readError(res, "Could not delete"));
+      await load();
+      setNotice(`Week ${week} removed. Its button is gone from the home page.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const clearAll = async () => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch(`${ANALYTICS_BASE}/power-rankings/admin/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ site: SITE }),
+      });
+      if (!res.ok) throw new Error(await readError(res, "Could not clear"));
+      const json = (await res.json()) as { data?: { deleted?: number } };
+      setWeeks([]);
+      setConfirming(false);
+      setNotice(
+        `${json.data?.deleted ?? 0} published week(s) removed. The table has fallen back to the week built into the site.`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not clear");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="mt-7">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-[19px] font-bold">Power rankings</h2>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void upload(f);
+          }}
+        />
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          className="rounded-lg bg-[#7c3aed] px-3 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"
+        >
+          {busy ? "Working…" : "Add JSON"}
+        </button>
+        {weeks.length > 0 && (
+          <button
+            onClick={() => setConfirming(true)}
+            disabled={busy}
+            className="ml-auto rounded-lg border border-[#6b2436] px-3 py-1.5 text-[13px] font-semibold text-[#ff9db4] disabled:opacity-50"
+          >
+            Delete all weeks
+          </button>
+        )}
+      </div>
+
+      <p className="mt-1 max-w-[62ch] text-[13px] text-[#a9a4c4]">
+        Upload the file the Willow Predictor produces with{" "}
+        <span className="text-[#e8e5f5]">Export for website</span>. Each upload publishes one week
+        of the table — its ranks, ratings, records, form, per-factor marks and write-ups. The home
+        page shows a numbered button per week, and opens on the newest. Re-uploading a week you
+        already published replaces it.
+      </p>
+
+      {error && (
+        <p className="mt-3 rounded-lg border border-[#7f1d3a] bg-[#2a1020] px-3 py-2 text-[13px] text-[#ff9db4]">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p className="mt-3 rounded-lg border border-[#1e5f43] bg-[#0f2a20] px-3 py-2 text-[13px] text-[#8ee6b8]">
+          {notice}
+        </p>
+      )}
+
+      {/* Clearing every week changes what the public site shows, so it asks. */}
+      {confirming && (
+        <div className="mt-3 rounded-xl border border-[#6b2436] bg-[#241019] p-4">
+          <p className="text-[15px] font-semibold text-white">Delete all {weeks.length} week(s)?</p>
+          <p className="mt-1 text-[13px] text-[#e2b5c2]">
+            The table falls back to the week built into the site, and every week button disappears
+            until you upload again. Analytics, questions and images are not affected.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => void clearAll()}
+              disabled={busy}
+              className="rounded-lg bg-[#b3243f] px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+            >
+              Yes, delete every week
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className="rounded-lg border border-[#3a3557] px-3 py-2 text-[13px] font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className={`mt-3 ${CARD}`}>
+        {weeks.length === 0 ? (
+          <p className="text-[13px] text-[#6f6a90]">
+            Nothing published — the table is showing the week built into the site.
+          </p>
+        ) : (
+          <div className="grid gap-1.5">
+            {weeks.map((w) => (
+              <div
+                key={`${w.season}-${w.week}`}
+                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-[#241f3d] py-1.5 last:border-b-0"
+              >
+                <span className="grid h-8 w-8 place-items-center rounded-lg border border-[#3a3557] text-[13px] font-bold tabular-nums text-white">
+                  {String(w.week).padStart(2, "0")}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[14px] text-[#e8e5f5]">
+                    {w.weekLabel || `Week ${w.week}`}
+                  </span>
+                  <span className="block truncate text-[12px] text-[#6f6a90]">
+                    {w.season} · {w.matchCount} matches · published{" "}
+                    {new Date(w.publishedAt).toLocaleString()}
+                  </span>
+                </span>
+                <button
+                  onClick={() => void removeWeek(w.week, w.season)}
+                  disabled={busy}
+                  className="rounded-lg border border-[#4a3a55] px-3 py-1.5 text-[13px] font-semibold text-[#ff9db4] disabled:opacity-40"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 /* ------------------------------- questions ------------------------------- */
 
 const FIELD =
@@ -1022,6 +1285,8 @@ function AdminPage() {
         )}
 
         <Analytics token={token} onExpired={signOut} />
+
+        <Rankings token={token} onExpired={signOut} />
 
         <Questions
           token={token}

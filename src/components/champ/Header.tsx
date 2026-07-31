@@ -12,9 +12,9 @@ function Lockup() {
       {/* Both marks ride the top bar at every width — the wordmark placeholders
           they replace read as unbranded on mobile, where the bar is all a
           visitor sees of the partnership. */}
-      <ChamphuntLogo className="h-[16px] sm:h-[24px]" />
-      <span aria-hidden="true" className="h-4 w-px shrink-0 bg-cream/30 sm:h-5" />
-      <WillowLogo className="h-[26px] sm:h-[38px]" />
+      <ChamphuntLogo className="h-[16px] sm:h-[24px] md:h-[30px]" />
+      <span aria-hidden="true" className="h-4 w-px shrink-0 bg-cream/30 sm:h-5 md:h-6" />
+      <WillowLogo className="h-[26px] sm:h-[38px] md:h-[46px]" />
     </div>
   );
 }
@@ -112,22 +112,19 @@ export function Header() {
             <>
               <Button
                 variant="ghost"
-                className="hidden h-9 px-3 text-[13px] text-cream md:inline-flex md:h-9"
+                className="h-9 px-2 text-[12px] text-cream md:h-9 md:px-3 md:text-[13px]"
                 onClick={() => openAuth("header")}
               >
                 Log in
               </Button>
               <Button
-                className="hidden h-9 px-4 text-[13px] md:inline-flex md:h-9"
+                className="h-9 px-3 text-[12px] md:h-9 md:px-4 md:text-[13px]"
                 onClick={() => openAuth("header")}
               >
                 Sign up
               </Button>
             </>
           )}
-          <div className="md:hidden">
-            <RunsCounter />
-          </div>
           <button
             type="button"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -174,27 +171,9 @@ export function Header() {
             <a href="/methodology" onClick={() => setOpen(false)} className="font-display text-[30px] text-cream">
               Method
             </a>
-            <div className="mt-auto flex flex-col gap-3">
-              <Button
-                variant="ghost"
-                full
-                className="text-cream"
-                onClick={() => {
-                  setOpen(false);
-                  openAuth("header");
-                }}
-              >
-                Log in
-              </Button>
-              <Button
-                full
-                onClick={() => {
-                  setOpen(false);
-                  openAuth("header");
-                }}
-              >
-                Sign up
-              </Button>
+            <div className="mt-auto flex flex-col gap-3 border-t-2 border-cream/15 pt-5">
+              <span className="t-micro cream-muted">Your balance</span>
+              <RunsCounter />
             </div>
           </motion.div>
         )}

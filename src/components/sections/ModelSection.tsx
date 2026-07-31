@@ -134,7 +134,7 @@ export function ModelSection() {
       <div ref={ref} className="relative z-[2] mx-auto max-w-[1320px] px-[clamp(20px,5vw,64px)] py-[clamp(24px,3.4vw,44px)]">
         <SectionHeader title="We built the model" sub="We also built a very loud cricket app." accent={ACCENT} />
 
-        <div className="mt-8 grid items-center gap-8 md:grid-cols-[280px_minmax(0,1fr)_minmax(0,0.9fr)]">
+        <div className="mt-8 grid items-center gap-8 md:grid-cols-[300px_minmax(0,1fr)]">
           {/* No enter animation around the screen.
               It used to be an AnimatePresence + motion.div fading in from
               opacity 0. Under SSR that animation never started, so the wrapper
@@ -143,7 +143,7 @@ export function ModelSection() {
               section; it does not wait on anything. */}
           <div
             ref={phoneRef}
-            className="mx-auto w-[248px] will-change-transform"
+            className="mx-auto w-[248px] will-change-transform md:w-[280px]"
             style={{ transformStyle: "preserve-3d" }}
           >
             <div className="aspect-[1419/2796] w-full">
@@ -154,7 +154,7 @@ export function ModelSection() {
             </div>
           </div>
 
-          <ul className="grid grid-cols-2 gap-3">
+          <ul className="grid grid-cols-2 gap-4">
             {tiles.map((t, i) => (
               <li key={t.label}>
                 <button
@@ -163,33 +163,17 @@ export function ModelSection() {
                     setTab(i);
                     track("model_tile", { tile: t.label });
                   }}
-                  className={`surface-cream flex h-[96px] w-full flex-col justify-center gap-1 rounded-xl border-2 px-3 text-left transition-transform hover:-translate-y-[2px] ${
+                  className={`surface-cream flex h-[132px] w-full flex-col justify-center gap-2 rounded-xl border-2 px-5 text-left transition-transform hover:-translate-y-[2px] md:h-[190px] ${
                     tab === i ? "border-magenta" : "border-ink/20"
                   }`}
                 >
-                  <t.icon size={20} aria-hidden="true" style={{ color: "var(--color-magenta)" }} />
-                  <span className="text-[15px] font-semibold leading-none">{t.label}</span>
-                  <span className="ink-muted truncate text-[13px]">{t.line}</span>
+                  <t.icon size={28} aria-hidden="true" style={{ color: "var(--color-magenta)" }} />
+                  <span className="font-display text-[19px] leading-none md:text-[24px]">{t.label}</span>
+                  <span className="ink-muted text-[13px] md:text-[15px]">{t.line}</span>
                 </button>
               </li>
             ))}
           </ul>
-
-          <div className="grid grid-cols-2 gap-2">
-            {/* Eager: only four thumbnails, and lazily-loaded they were still
-                showing as empty bordered boxes when the section was on screen. */}
-            {crowdFrames.map((f) => (
-              <SmartImage
-                key={f.alt}
-                src={f.src}
-                alt={f.alt}
-                width={1280}
-                height={640}
-                eager
-                className="aspect-[4/3] rounded-xl border-2 border-ink"
-              />
-            ))}
-          </div>
         </div>
 
         <div className="mt-8 flex justify-center">

@@ -289,6 +289,23 @@ body.no-cursor * {
   animation: shake-x 200ms ease-in-out;
 }
 
+/* Win acknowledgement: the settled box pulses green three times so a correct
+   call is felt, not just read. */
+@keyframes flash-win {
+  0%,
+  100% {
+    background-color: var(--color-cream-2);
+    border-color: var(--color-ink);
+  }
+  50% {
+    background-color: color-mix(in srgb, var(--color-win) 30%, var(--color-cream-2));
+    border-color: var(--color-win);
+  }
+}
+@utility animate-flash-win {
+  animation: flash-win 620ms ease-in-out 3;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

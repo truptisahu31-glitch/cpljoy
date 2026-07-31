@@ -24,13 +24,14 @@ export function BackYourself() {
 
   useEffect(() => {
     if (state !== "locked") return;
+    // No auto-redirect on the win. The visitor reads the result and chooses
+    // where to go from the two buttons underneath it.
     const t = window.setTimeout(() => {
       setResolved(true);
       credit("challenge-won");
-      window.setTimeout(() => openAuth("challenge"), 900);
     }, 2000);
     return () => window.clearTimeout(t);
-  }, [state, credit, openAuth]);
+  }, [state, credit]);
 
   const payout = (stake ?? 0) * challenge.payout_multiplier;
 
@@ -57,13 +58,7 @@ export function BackYourself() {
             </div>
 
             <p className="mt-3 font-display text-[19px]">{challenge.fixture_label}</p>
-            <p className="ink-muted text-[13px]">{challenge.meta}</p>
-
-            <p className="mt-4 text-[16px] font-semibold">{challenge.question}</p>
-            <p className="ink-muted mt-1 text-[12px]">{challenge.closeLine}</p>
-            <p className="mt-2 rounded-lg border-2 border-ink/20 bg-cream-2 px-3 py-2 text-[12px] font-semibold">
-              {challenge.edge_case_rule}
-            </p>
+            <p className="mt-3 text-[16px] font-semibold">{challenge.question}</p>
 
             {state === "idle" && (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -123,20 +118,12 @@ export function BackYourself() {
                   })}
                 </div>
 
-                <p className="ink-muted mt-3 flex items-center gap-1.5 text-[13px]">
-                  <RunsIcon size={14} />
-                  Demo balance: <DigitRoll value={balance} /> Runs
-                </p>
-
                 {stake !== null && (
-                  <p className="mt-2 text-[15px] font-semibold">
+                  <p className="mt-3 text-[15px] font-semibold">
                     If you're right: <DigitRoll value={payout} /> Runs
                   </p>
                 )}
-                <p className="ink-muted mt-1 text-[13px]">Wrong and the stake's gone. That's the deal.</p>
-                <p className="ink-muted mt-1 text-[12px]">
-                  Runs can't be bought and have no cash value. Everything here is free to play.
-                </p>
+                <p className="mt-1 text-[12px] font-bold">Everything here is free to play.</p>
 
                 <div className="mt-4 flex justify-center">
                   <Button
@@ -161,7 +148,9 @@ export function BackYourself() {
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                className="mt-4 rounded-xl border-2 border-ink bg-cream-2 p-4 text-center"
+                className={`mt-4 rounded-xl border-2 border-ink bg-cream-2 p-4 text-center ${
+                  resolved ? "animate-flash-win" : ""
+                }`}
               >
                 {!resolved ? (
                   <>
@@ -184,12 +173,7 @@ export function BackYourself() {
                       <Button
                         variant="ghost"
                         className="text-ink"
-                        onClick={() => {
-                          setState("idle");
-                          setStake(null);
-                          setAnswer(null);
-                          setResolved(false);
-                        }}
+                        onClick={() => openAuth("challenge")}
                       >
                         Try another
                       </Button>
