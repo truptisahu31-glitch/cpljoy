@@ -33,41 +33,31 @@ const steps = [
 
 type Deal = ReturnType<typeof useSiteImages>["deals"][number];
 
-/** Pinned scroll distance over which the Runs total climbs from 0 to the
- *  priciest deal. About a screenful, so the unlock reads as a deliberate
- *  scrub rather than something that flicks past. */
-const RUNWAY_PX = 760;
-/** The last card unlocks at this point, leaving a beat where every card is
- *  green before the pin releases into the next section. */
-const ALL_GREEN_AT = 0.88;
+/** The last card unlocks at this point in the block's travel, leaving a beat
+ *  where every card is green before it scrolls away. */
+const ALL_GREEN_AT = 0.85;
 
 /**
- * Holds the stage still for `RUNWAY_PX` of scrolling and turns that distance
- * into a Runs figure.
+ * Turns the deals block's own travel through the viewport into a Runs figure.
  *
- * The pin is a transform, not `position: sticky`. Sticky silently refused to
- * engage for this block — the stage kept scrolling out from under the header
- * while the runway's empty tail showed below it — so the hold is done by
- * translating the stage down by exactly the distance scrolled, which is what
- * sticky would have computed anyway and is not at the mercy of a containing
- * block somewhere up the tree.
+ * There is no pin. A pin has to reserve the scroll distance it consumes, and
+ * that reserve is empty page — on a tall window it showed as a screenful of
+ * blank below the cards, and the only ways to hide it are to stretch the stage
+ * or the cards, both of which change the layout. So the block simply scrolls,
+ * and its position does the work: the total climbs from the moment the cards
+ * appear at the bottom of the viewport until they reach the top. Nothing is
+ * reserved, nothing is resized, and the unlock still happens under the hand.
  *
- * The transform is written straight to the node inside the rAF rather than
- * through state: the pin has to track the scroll frame for frame, and a
- * re-render per frame to move a box is waste.
- *
- * Nothing in the frame loop reads layout. The runway's document offset is
+ * Nothing in the frame loop reads layout. The block's document offset is
  * measured once and re-measured only when the page actually reflows, so each
  * frame is `scrollY` plus arithmetic — a `getBoundingClientRect` here would
- * force a synchronous layout on every frame of every scroll on the page, which
- * is the usual reason a pin like this feels heavy. `runs` is the one piece of
- * state, and it is only set when the snapped value truly changes, so an
- * unchanged step costs no render at all.
+ * force a synchronous layout on every frame of every scroll on the page.
+ * `runs` is the one piece of state and is set only when the snapped value
+ * truly changes, so an unchanged step costs no render at all.
  *
  * Scrubs both ways — scrolling back up walks the total down and re-locks.
  */
-function useScrollPin(
-  runway: React.RefObject<HTMLDivElement | null>,
+function useScrollUnlock(
   stage: React.RefObject<HTMLDivElement | null>,
   max: number,
   active: boolean,
@@ -76,39 +66,30 @@ function useScrollPin(
 
   useEffect(() => {
     if (!active) return;
-    const track = runway.current;
     const el = stage.current;
-    if (!track || !el) return;
+    if (!el) return;
 
     let raf = 0;
-    let top = 0;
-    let header = 66;
-    let held = -1;
+    let start = 0;
+    let travel = 1;
     let last = -1;
-    let pinned = false;
 
     /** The only layout read, outside the frame loop. */
     const measure = () => {
-      header = window.matchMedia("(min-width: 768px)").matches ? 66 : 56;
-      top = track.getBoundingClientRect().top + window.scrollY;
+      const header = window.matchMedia("(min-width: 768px)").matches ? 66 : 56;
+      const vh = window.innerHeight;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      // Nothing until the cards edge into view; complete by the time they sit
+      // under the header. Clamped so a viewport shorter than the block still
+      // gets a sane run rather than a division that snaps 0 → all at once.
+      start = top - vh;
+      travel = Math.max(240, vh - header);
     };
 
     const frame = () => {
       raf = 0;
-      const next = Math.min(RUNWAY_PX, Math.max(0, window.scrollY + header - top));
-      if (next === held) return;
-      held = next;
-
-      el.style.transform = held > 0 ? `translate3d(0, ${held}px, 0)` : "";
-      // The compositor hint costs a layer, so it is only worth holding while
-      // the pin is actually moving.
-      const nowPinned = held > 0 && held < RUNWAY_PX;
-      if (nowPinned !== pinned) {
-        pinned = nowPinned;
-        el.style.willChange = pinned ? "transform" : "";
-      }
-
-      const eased = Math.min(1, held / RUNWAY_PX / ALL_GREEN_AT);
+      const p = Math.min(1, Math.max(0, (window.scrollY - start) / travel));
+      const eased = Math.min(1, p / ALL_GREEN_AT);
       const snapped = Math.round((eased * max) / 100) * 100;
       if (snapped !== last) {
         last = snapped;
@@ -127,20 +108,21 @@ function useScrollPin(
     frame();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
-    // Images and fonts landing above this section move it down the document;
-    // without re-measuring, the pin would engage at the wrong scroll position.
+    // Images and fonts landing above this section move it down the document,
+    // and a pinch-zoom reflows everything; without re-measuring, the unlock
+    // would run against stale geometry.
     const ro = new ResizeObserver(onResize);
     ro.observe(document.documentElement);
+    window.visualViewport?.addEventListener("resize", onResize);
 
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
       ro.disconnect();
       cancelAnimationFrame(raf);
-      el.style.transform = "";
-      el.style.willChange = "";
     };
-  }, [runway, stage, max, active]);
+  }, [stage, max, active]);
 
   return runs;
 }
@@ -356,14 +338,13 @@ export function EarnSpend() {
   const sorted = useMemo(() => [...deals].sort((a, b) => a.cost - b.cost), [deals]);
   const maxCost = useMemo(() => sorted.reduce((m, d) => Math.max(m, d.cost), 0), [sorted]);
 
-  const runway = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const rail = useRef<HTMLUListElement>(null);
   const reduced = useReducedMotion();
   // Reduced motion keeps the old behaviour: no pin, no scrub, the figure just
   // follows what the visitor has actually earned.
   const scrub = !reduced;
-  const scrollRuns = useScrollPin(runway, stage, maxCost, scrub);
+  const scrollRuns = useScrollUnlock(stage, maxCost, scrub);
   const runs = sim ?? (scrub ? scrollRuns : balance);
 
   /* Phone: walk the rail along with the unlocks.
@@ -452,59 +433,41 @@ export function EarnSpend() {
           ))}
         </ul>
 
-        {/* Scroll runway.
-            The padding is the distance the stage is held for, so the page
-            reserves exactly the scroll the pin consumes. Deliberately plain
-            CSS: driving this height from a measured `stageH` in state fed a
-            loop — height changed, the runway's geometry moved, `runs` changed,
-            the cards changed height — and the counter oscillated as you
-            scrolled. Layout resolves it here, React never sees it.
+        {/* The block whose travel drives the unlock. Plain flow — no reserved
+            scroll, no transform, so there is no empty tail underneath it. */}
+        <div ref={stage}>
+          <SpendSlider
+            runs={runs}
+            balance={balance}
+            deals={sorted}
+            touched={sim !== null}
+            onChange={setSim}
+            onReset={() => setSim(null)}
+          />
 
-            The stage fills the viewport and centres its content so the held
-            frame has no empty tail below it. Only the slider and the cards are
-            pinned; the whole section is ~930px and would not fit. */}
-        <div ref={runway} style={scrub ? { paddingBottom: RUNWAY_PX } : undefined}>
-          <div
-            ref={stage}
-            className={
-              scrub
-                ? "flex min-h-[min(calc(100svh-56px),640px)] flex-col justify-center py-4 md:min-h-[min(calc(100svh-66px),640px)]"
-                : undefined
-            }
+          {/* `items-stretch` (the flex default) plus `h-full` on each card makes
+              every card the same height, and the fixed row slots inside line the
+              cost and action rows up across all five — the offer text runs to
+              two lines on some cards, which used to push everything below it
+              out of step. */}
+          <ul
+            ref={rail}
+            className="mt-6 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto pb-3 lg:grid lg:grid-cols-5 lg:overflow-visible"
           >
-            <SpendSlider
-              runs={runs}
-              balance={balance}
-              deals={sorted}
-              touched={sim !== null}
-              onChange={setSim}
-              onReset={() => setSim(null)}
-            />
-
-        {/* `items-stretch` (the flex default) plus `h-full` on each card makes
-            every card the same height, and the fixed row slots inside line the
-            cost and action rows up across all five — the offer text runs
-            to two lines on some cards, which used to push everything below it
-            out of step. */}
-        <ul
-              ref={rail}
-              className="mt-6 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto pb-3 lg:grid lg:grid-cols-5 lg:overflow-visible"
-            >
-          {sorted.map((d) => (
-                <DealCard
-                  key={d.id}
-                  deal={d}
-                  open={runs >= d.cost}
-                  shortfall={d.cost - runs}
-                  onTouch={touch}
-                  onAct={goToAuth}
-                />
-              ))}
-            </ul>
-          </div>
+            {sorted.map((d) => (
+              <DealCard
+                key={d.id}
+                deal={d}
+                open={runs >= d.cost}
+                shortfall={d.cost - runs}
+                onTouch={touch}
+                onAct={goToAuth}
+              />
+            ))}
+          </ul>
         </div>
 
-        {/* Outside the pin, so it arrives once every card has gone green. */}
+        {/* Arrives once every card has gone green. */}
         <div className="mt-8 flex justify-center">
           <Button className="w-full sm:w-auto" onClick={() => openAuth("deals")}>
             Claim your Runs
