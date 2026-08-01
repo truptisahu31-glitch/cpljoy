@@ -77,7 +77,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      /* `minimum-scale=1` stops the pinch-out.
+         Safari's default minimum scale is 0.25, so a phone could pinch below
+         100% and the layout viewport shrank into a narrow column with painted
+         background filling the rest of the screen. Zooming *in* is left alone
+         — capping that would take magnification away from anyone who needs it,
+         and it is not what breaks the layout. `user-scalable=no` is
+         deliberately not used: iOS has ignored it since iOS 10, and it would
+         disable zoom-in too on the platforms that do honour it. */
+      { name: "viewport", content: "width=device-width, initial-scale=1, minimum-scale=1" },
       { title: "CPL 2026 AI Power Rankings | Champhunt × Willow TV" },
       { name: "description", content: "Who is playing the best cricket in the Caribbean right now — nine measurements, weights we published, updated Mondays. Play a prediction free." },
       { name: "author", content: "Lovable" },
