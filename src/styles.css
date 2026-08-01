@@ -76,6 +76,21 @@
 
   html {
     scroll-behavior: smooth;
+
+    /* Sideways panning is killed here, on <html>, not on <body>.
+       Overflow set on the root element propagates to the viewport itself, so
+       the page genuinely cannot be dragged left — the same declaration on
+       <body> only clips <body>'s own box and leaves the viewport free to pan,
+       which is why a phone could still swipe the layout off screen.
+
+       Two declarations on purpose. `hidden` is the floor every browser
+       understands; `clip` overrides it wherever it is supported and is the one
+       we want, because `overflow-x: hidden` computes overflow-y to `auto` and
+       would otherwise turn the element into a scroll container that stops
+       `position: sticky` engaging anywhere on the site. A browser too old for
+       `clip` ignores the second line and still gets the containment. */
+    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   body {
@@ -83,10 +98,8 @@
     color: var(--fg);
     font-family: var(--font-body);
     font-variant-numeric: tabular-nums;
-    /* `clip`, not `hidden`: `overflow-x: hidden` computes overflow-y to `auto`,
-       which makes <body> its own scroll container and stops `position: sticky`
-       from ever engaging against the viewport. `clip` contains the same
-       horizontal overflow without creating a scroll box. */
+    /* Belt and braces for anything that overflows inside the document rather
+       than past the viewport. */
     overflow-x: clip;
   }
 
