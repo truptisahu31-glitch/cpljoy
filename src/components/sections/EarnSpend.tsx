@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Check, Coins, Gift, Lock, Target } from "lucide-react";
 import { Button, DigitRoll, RunsIcon, SectionHeader, SmartImage } from "../champ/primitives";
@@ -54,9 +54,15 @@ const ALL_GREEN_AT = 0.88;
  *
  * The transform is written straight to the node inside the rAF rather than
  * through state: the pin has to track the scroll frame for frame, and a
- * re-render per frame to move a box is waste. `runs` is state because it
- * changes the cards, but it is snapped to the slider's 100-Run step so it
- * settles rather than churning on every pixel.
+ * re-render per frame to move a box is waste.
+ *
+ * Nothing in the frame loop reads layout. The runway's document offset is
+ * measured once and re-measured only when the page actually reflows, so each
+ * frame is `scrollY` plus arithmetic — a `getBoundingClientRect` here would
+ * force a synchronous layout on every frame of every scroll on the page, which
+ * is the usual reason a pin like this feels heavy. `runs` is the one piece of
+ * state, and it is only set when the snapped value truly changes, so an
+ * unchanged step costs no render at all.
  *
  * Scrubs both ways — scrolling back up walks the total down and re-locks.
  */
@@ -75,35 +81,167 @@ function useScrollPin(
     if (!track || !el) return;
 
     let raf = 0;
-    const read = () => {
-      raf = 0;
-      const header = window.matchMedia("(min-width: 768px)").matches ? 66 : 56;
-      // How far the top of the runway has travelled past the header.
-      const gone = header - track.getBoundingClientRect().top;
-      const held = Math.min(RUNWAY_PX, Math.max(0, gone));
-      el.style.transform = held > 0 ? `translate3d(0, ${held}px, 0)` : "";
+    let top = 0;
+    let header = 66;
+    let held = -1;
+    let last = -1;
+    let pinned = false;
 
-      const p = held / RUNWAY_PX;
-      const eased = Math.min(1, p / ALL_GREEN_AT);
-      setRuns(Math.round((eased * max) / 100) * 100);
+    /** The only layout read, outside the frame loop. */
+    const measure = () => {
+      header = window.matchMedia("(min-width: 768px)").matches ? 66 : 56;
+      top = track.getBoundingClientRect().top + window.scrollY;
+    };
+
+    const frame = () => {
+      raf = 0;
+      const next = Math.min(RUNWAY_PX, Math.max(0, window.scrollY + header - top));
+      if (next === held) return;
+      held = next;
+
+      el.style.transform = held > 0 ? `translate3d(0, ${held}px, 0)` : "";
+      // The compositor hint costs a layer, so it is only worth holding while
+      // the pin is actually moving.
+      const nowPinned = held > 0 && held < RUNWAY_PX;
+      if (nowPinned !== pinned) {
+        pinned = nowPinned;
+        el.style.willChange = pinned ? "transform" : "";
+      }
+
+      const eased = Math.min(1, held / RUNWAY_PX / ALL_GREEN_AT);
+      const snapped = Math.round((eased * max) / 100) * 100;
+      if (snapped !== last) {
+        last = snapped;
+        setRuns(snapped);
+      }
     };
     const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(read);
+      if (!raf) raf = requestAnimationFrame(frame);
+    };
+    const onResize = () => {
+      measure();
+      onScroll();
     };
 
-    read();
+    measure();
+    frame();
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    window.addEventListener("resize", onResize);
+    // Images and fonts landing above this section move it down the document;
+    // without re-measuring, the pin would engage at the wrong scroll position.
+    const ro = new ResizeObserver(onResize);
+    ro.observe(document.documentElement);
+
     return () => {
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", onResize);
+      ro.disconnect();
       cancelAnimationFrame(raf);
       el.style.transform = "";
+      el.style.willChange = "";
     };
   }, [runway, stage, max, active]);
 
   return runs;
 }
+
+/**
+ * One deal.
+ *
+ * Memoised, and deliberately given `open` and `shortfall` rather than the raw
+ * `runs`: an unlocked card's props then stop changing entirely, so four of the
+ * five drop out of the render pass while the scrub is still climbing. Only the
+ * cards that still have a number to count down actually re-render.
+ */
+const DealCard = memo(function DealCard({
+  deal,
+  open,
+  shortfall,
+  onTouch,
+  onAct,
+}: {
+  deal: Deal;
+  open: boolean;
+  shortfall: number;
+  onTouch: () => void;
+  onAct: (deal: Deal, state: "ready" | "locked") => void;
+}) {
+  return (
+    <li
+      // The deal-touch credit used to hang off the Terms disclosure. With that
+      // gone, engaging with the card itself is the signal.
+      onClickCapture={onTouch}
+      onMouseEnter={onTouch}
+      style={{
+        borderColor: open ? "var(--color-win)" : "var(--color-ink)",
+        boxShadow: open ? "0 0 0 3px color-mix(in oklab, var(--color-win) 25%, transparent)" : "none",
+      }}
+      className="surface-cream group flex h-full w-[82vw] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border-2 transition-[border-color,box-shadow] duration-300 sm:w-[62vw] lg:w-auto"
+    >
+      <div className="relative h-[180px] shrink-0 overflow-hidden">
+        <SmartImage
+          src={deal.image}
+          alt={deal.alt}
+          width={1080}
+          height={720}
+          className="h-full w-full transition-transform duration-500 [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-[1.03]"
+        />
+        <span
+          aria-hidden="true"
+          className={`absolute inset-0 mix-blend-multiply transition-opacity duration-500 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-0 ${
+            open ? "bg-purple/10" : "bg-purple/35"
+          }`}
+        />
+        {/* Unlocked badge — the at-a-glance answer to "can I afford this yet?"
+            as the total climbs. */}
+        <span
+          className={`absolute right-2 top-2 flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold transition-all duration-300 ${
+            open ? "bg-win text-white opacity-100" : "bg-ink/70 text-cream opacity-90"
+          }`}
+        >
+          {open ? <Check size={13} aria-hidden="true" /> : <Lock size={12} aria-hidden="true" />}
+          {open ? "Unlocked" : "Locked"}
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-2 p-3">
+        <span className="t-micro ink-muted">{deal.cat}</span>
+
+        {/* Two lines' worth, always — the row below must not shift. */}
+        <span className="flex min-h-[44px] items-start text-[15px] font-semibold leading-snug">
+          {deal.offer}
+        </span>
+
+        <span className="flex h-[22px] items-center gap-1.5 text-[14px] font-bold">
+          <RunsIcon size={15} className={open ? "" : "opacity-40"} />
+          <span className={open ? "text-win" : "opacity-60"}>
+            <DigitRoll value={deal.cost} />
+          </span>
+        </span>
+
+        <div className="mt-auto pt-1">
+          {open ? (
+            // Green, matching the unlocked border and the Redeem step — the
+            // payoff state should look different from a CTA.
+            <Button
+              full
+              onClick={() => onAct(deal, "ready")}
+              className="border-2 text-white"
+              style={{ backgroundColor: "var(--color-win)", borderColor: "var(--color-win)" }}
+            >
+              <Check size={16} aria-hidden="true" />
+              Redeem
+            </Button>
+          ) : (
+            <Button variant="outline" full onClick={() => onAct(deal, "locked")}>
+              Earn {shortfall.toLocaleString()} more
+            </Button>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+});
 
 /**
  * "What would N Runs get me?"
@@ -142,7 +280,7 @@ function SpendSlider({
         <span className="t-micro ink-muted">Spend it</span>
         <span className="flex items-center gap-2 font-display text-[26px] leading-none">
           <RunsIcon size={20} />
-          <DigitRoll value={runs} /> Runs
+          <DigitRoll value={runs} duration={160} /> Runs
         </span>
         <span className="text-[14px] font-semibold">
           {unlocked.length} of {deals.length} unlocked
@@ -245,14 +383,19 @@ export function EarnSpend() {
     el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
   }, [unlockedCount]);
 
-  const touch = () => credit("deal-touch");
+  // Stable identities, so a memoised card is not re-rendered by a new closure
+  // on every step of the scrub.
+  const touch = useCallback(() => credit("deal-touch"), [credit]);
 
   /** Every card action ends at the real product's sign-in. */
-  const goToAuth = (deal: Deal, state: "ready" | "locked") => {
-    touch();
-    track("redeem_attempted", { deal: deal.id, state });
-    openAuth("deals");
-  };
+  const goToAuth = useCallback(
+    (deal: Deal, state: "ready" | "locked") => {
+      touch();
+      track("redeem_attempted", { deal: deal.id, state });
+      openAuth("deals");
+    },
+    [touch, track, openAuth],
+  );
 
   return (
     // No `overflow-hidden` here: it would make this section the scroll
@@ -325,7 +468,7 @@ export function EarnSpend() {
             ref={stage}
             className={
               scrub
-                ? "flex min-h-[calc(100svh-56px)] flex-col justify-center will-change-transform md:min-h-[calc(100svh-66px)]"
+                ? "flex min-h-[min(calc(100svh-56px),640px)] flex-col justify-center py-4 md:min-h-[min(calc(100svh-66px),640px)]"
                 : undefined
             }
           >
@@ -347,90 +490,16 @@ export function EarnSpend() {
               ref={rail}
               className="mt-6 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto pb-3 lg:grid lg:grid-cols-5 lg:overflow-visible"
             >
-          {sorted.map((d) => {
-            const open = runs >= d.cost;
-            return (
-              <li
-                key={d.id}
-                // The deal-touch credit used to hang off the Terms disclosure.
-                // With that gone, engaging with the card itself is the signal.
-                onClickCapture={touch}
-                onMouseEnter={touch}
-                className="surface-cream group flex h-full w-[82vw] shrink-0 snap-center flex-col overflow-hidden rounded-2xl border-2 transition-[border-color,box-shadow] duration-300 sm:w-[62vw] lg:w-auto"
-                style={{
-                  borderColor: open ? "var(--color-win)" : "var(--color-ink)",
-                  boxShadow: open ? "0 0 0 3px color-mix(in oklab, var(--color-win) 25%, transparent)" : "none",
-                }}
-              >
-                <div className="relative h-[180px] shrink-0 overflow-hidden">
-                  <SmartImage
-                    src={d.image}
-                    alt={d.alt}
-                    width={1080}
-                    height={720}
-                    className="h-full w-full transition-transform duration-500 [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-[1.03]"
-                  />
-                  <span
-                    aria-hidden="true"
-                    className={`absolute inset-0 mix-blend-multiply transition-opacity duration-500 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-0 ${
-                      open ? "bg-purple/10" : "bg-purple/35"
-                    }`}
-                  />
-                  {/* Unlocked badge — the at-a-glance answer to "can I afford
-                      this yet?" as the slider moves. */}
-                  <span
-                    className={`absolute right-2 top-2 flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold transition-all duration-300 ${
-                      open
-                        ? "bg-win text-white opacity-100"
-                        : "bg-ink/70 text-cream opacity-90"
-                    }`}
-                  >
-                    {open ? <Check size={13} aria-hidden="true" /> : <Lock size={12} aria-hidden="true" />}
-                    {open ? "Unlocked" : "Locked"}
-                  </span>
-                </div>
-
-                <div className="flex flex-1 flex-col gap-2 p-3">
-                  <span className="t-micro ink-muted">{d.cat}</span>
-
-                  {/* Two lines' worth, always — the row below must not shift. */}
-                  <span className="flex min-h-[44px] items-start text-[15px] font-semibold leading-snug">
-                    {d.offer}
-                  </span>
-
-                  <span className="flex h-[22px] items-center gap-1.5 text-[14px] font-bold">
-                    <RunsIcon size={15} className={open ? "" : "opacity-40"} />
-                    <span className={open ? "text-win" : "opacity-60"}>
-                      <DigitRoll value={d.cost} />
-                    </span>
-                  </span>
-
-                  <div className="mt-auto pt-1">
-                    {open ? (
-                      // Green, matching the unlocked border and the Redeem step
-                      // — the payoff state should look different from a CTA.
-                      <Button
-                        full
-                        onClick={() => goToAuth(d, "ready")}
-                        className="border-2 text-white"
-                        style={{
-                          backgroundColor: "var(--color-win)",
-                          borderColor: "var(--color-win)",
-                        }}
-                      >
-                        <Check size={16} aria-hidden="true" />
-                        Redeem
-                      </Button>
-                    ) : (
-                      <Button variant="outline" full onClick={() => goToAuth(d, "locked")}>
-                        Earn {(d.cost - runs).toLocaleString()} more
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
+          {sorted.map((d) => (
+                <DealCard
+                  key={d.id}
+                  deal={d}
+                  open={runs >= d.cost}
+                  shortfall={d.cost - runs}
+                  onTouch={touch}
+                  onAct={goToAuth}
+                />
+              ))}
             </ul>
           </div>
         </div>

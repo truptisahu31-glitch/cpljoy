@@ -66,10 +66,20 @@ type DigitRollProps = {
   className?: string;
   prefix?: string;
   suffix?: string;
+  /** Roll time per column. Short values suit a counter driven by scroll, which
+   *  has to keep up with the hand rather than make an entrance. */
+  duration?: number;
 };
 
-/** Each digit column rolls 0–9, staggered 40ms left to right, 900ms. Width never changes. */
-export function DigitRoll({ value, decimals = 0, className, prefix, suffix }: DigitRollProps) {
+/** Each digit column rolls 0–9, staggered left to right. Width never changes. */
+export function DigitRoll({
+  value,
+  decimals = 0,
+  className,
+  prefix,
+  suffix,
+  duration = 900,
+}: DigitRollProps) {
   const reduced = useReducedMotion();
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.4 });
@@ -106,8 +116,15 @@ export function DigitRoll({ value, decimals = 0, className, prefix, suffix }: Di
         const digit = Number(ch);
         const y = reduced || rolled ? -digit * 10 : 0;
         return (
+          /* Keyed by position, not by the digit it currently shows.
+             With the digit in the key every change unmounted the column and
+             mounted a fresh one already at its final offset, so the roll this
+             component exists for never actually played — the number snapped.
+             Reusing the column lets the transition run, and it drops a mount
+             and a paint per digit per change, which is what makes a counter
+             driven by scroll cheap enough to track the hand. */
           <span
-            key={`d-${i}-${ch}`}
+            key={`d-${i}`}
             aria-hidden="true"
             className="relative inline-block h-[1em] w-[0.62em] overflow-hidden align-baseline"
           >
@@ -115,8 +132,10 @@ export function DigitRoll({ value, decimals = 0, className, prefix, suffix }: Di
               className="absolute left-0 top-0 flex flex-col transition-transform ease-out"
               style={{
                 transform: `translateY(${y}%)`,
-                transitionDuration: reduced ? "0ms" : "900ms",
-                transitionDelay: reduced ? "0ms" : `${i * 40}ms`,
+                transitionDuration: reduced ? "0ms" : `${duration}ms`,
+                // The stagger reads as a cascade on a long roll and as lag on a
+                // short one, so it scales with the duration.
+                transitionDelay: reduced ? "0ms" : `${i * Math.round(duration / 22)}ms`,
               }}
             >
               {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
@@ -185,6 +204,35 @@ export function SmartImage({
   style,
 }: SmartImageProps) {
   const [state, setState] = useState<"loading" | "ok" | "fail">(src ? "loading" : "fail");
+  const img = useRef<HTMLImageElement>(null);
+
+  /* `onLoad` is not guaranteed to fire.
+     An image that is already decoded when React attaches the handler — served
+     from cache, or finished during hydration — has nothing left to announce, so
+     the component sat at `loading` forever and the picture stayed at opacity 0
+     behind the placeholder. Every deal card was a flat tint for this reason.
+     Reading `complete` on mount closes the gap; `naturalWidth` distinguishes a
+     decoded image from a broken one, which also reports `complete`. */
+  useEffect(() => {
+    const el = img.current;
+    if (!el || state !== "loading") return;
+    if (el.complete) {
+      setState(el.naturalWidth > 0 ? "ok" : "fail");
+      return;
+    }
+    // These images are server-rendered, so the browser starts fetching them
+    // before React is running and the synthetic handler above can miss the
+    // event outright. A native listener is bound to the element itself and
+    // cannot be missed the same way.
+    const ok = () => setState("ok");
+    const bad = () => setState("fail");
+    el.addEventListener("load", ok);
+    el.addEventListener("error", bad);
+    return () => {
+      el.removeEventListener("load", ok);
+      el.removeEventListener("error", bad);
+    };
+  }, [state, src]);
 
   if (state === "fail") {
     return (
@@ -207,6 +255,7 @@ export function SmartImage({
         <div aria-hidden="true" className="absolute inset-0 animate-pulse bg-cream-3" />
       )}
       <img
+        ref={img}
         src={src}
         alt={alt}
         width={width}
@@ -215,11 +264,11 @@ export function SmartImage({
         decoding="async"
         onLoad={() => setState("ok")}
         onError={() => setState("fail")}
-        className={cn(
-          "h-full w-full object-cover transition-opacity duration-500",
-          state === "ok" ? "opacity-100" : "opacity-0",
-          imgClassName,
-        )}
+        // Inline rather than `opacity-0`/`opacity-100`: those utilities are not
+        // in this build's generated CSS, so the swap did nothing and every
+        // photo stayed invisible behind its placeholder.
+        style={{ opacity: state === "ok" ? 1 : 0 }}
+        className={cn("h-full w-full object-cover transition-opacity duration-500", imgClassName)}
       />
       {treatment === "duotone" && tint && (
         <div

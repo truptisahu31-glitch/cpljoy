@@ -57,9 +57,9 @@ export const players = [{ id: "pooran", name: "Nicholas Pooran", image: playerCu
 
 export const deals = [
   { id: "pass", cat: "Match pass", offer: "One-match live pass", cost: 500, image: dealPass, alt: "Live cricket on a tablet at home", terms: "One redemption per account." },
-  { id: "food", cat: "Food delivery", offer: "$15 off your match-day order", cost: 1800, image: dealFood, alt: "Match-day food spread in takeaway trays", terms: "Minimum order applies." },
-  { id: "gear", cat: "Sports gear", offer: "20% off cricket gear", cost: 2500, image: dealGear, alt: "Cricket bat, gloves and ball on a dark surface", terms: "Selected ranges." },
-  { id: "merch", cat: "Merch", offer: "Team jersey, 30% off", cost: 3200, image: dealMerch, alt: "Folded cricket jersey", terms: "While stocks last." },
+  { id: "food", cat: "Food delivery", offer: "$15 off your match-day order", cost: 3500, image: dealFood, alt: "Match-day food spread in takeaway trays", terms: "Minimum order applies." },
+  { id: "gear", cat: "Sports gear", offer: "20% off cricket gear", cost: 8000, image: dealGear, alt: "Cricket bat, gloves and ball on a dark surface", terms: "Selected ranges." },
+  { id: "merch", cat: "Merch", offer: "Team jersey, 30% off", cost: 15000, image: dealMerch, alt: "Folded cricket jersey", terms: "While stocks last." },
   { id: "tix", cat: "Match tickets", offer: "CPL final, two seats", cost: 25000, image: dealTickets, alt: "Two front-row seats overlooking a floodlit ground", terms: "Subject to availability." },
 ];
 
